@@ -1,0 +1,152 @@
+<section class="science-home-shell">
+  <div class="science-home-hero">
+    <p class="paper-reader-kicker">ScienceCritic</p>
+    <h1>Scientific papers should be semantic objects, not trapped pages.</h1>
+    <p>
+      This prototype demonstrates a better shape for scholarly documents: a high-quality reading surface paired with a structured document graph that can support selection, clarification, annotation, search, and LLM-grounded critique.
+    </p>
+    <div class="science-home-actions">
+      <.link href={~p"/papers/attention"}>Open the semantic paper demo</.link>
+      <a href="https://arxiv.org/abs/1706.03762">Original paper</a>
+    </div>
+  </div>
+
+  <div class="science-home-grid">
+    <article>
+      <span>01</span>
+      <h2>The problem</h2>
+      <p>
+        PDFs preserve pages, not knowledge. Text, equations, figures, tables, citations, and claims become difficult to inspect, select, reuse, or ask questions about.
+      </p>
+    </article>
+    <article>
+      <span>02</span>
+      <h2>The proposal</h2>
+      <p>
+        Ship every serious scientific document with a canonical semantic graph alongside its visual rendering: sections, blocks, equations, figures, tables, references, and stable anchors.
+      </p>
+    </article>
+    <article>
+      <span>03</span>
+      <h2>The demonstration</h2>
+      <p>
+        This app compiles the TeX source of <em>Attention Is All You Need</em>
+        into selectable HTML, parses the same source into a document graph, and shows how selection can become grounded clarification context.
+      </p>
+    </article>
+  </div>
+
+  <section class="science-home-problems">
+    <div class="science-home-section-heading">
+      <p class="paper-reader-kicker">Problems exposed by one famous paper</p>
+      <h2>Even <em>Attention Is All You Need</em> becomes a document-systems swamp.</h2>
+      <p>
+        The paper is short, famous, and available as both PDF and TeX. It should be an easy case. Building this prototype still exposed the same structural problems that waste time across science, publishing, education, and industry.
+      </p>
+    </div>
+
+    <div class="science-problem-list">
+      <article>
+        <h3>PDF is visually stable but semantically hostile.</h3>
+        <p>
+          The PDF can show the paper faithfully, but text selection, equations, tables, figures, captions, citations, and reading order are difficult to recover as reliable objects for annotation or LLM context.
+        </p>
+      </article>
+      <article>
+        <h3>TeX has meaning, but it is a program.</h3>
+        <p>
+          The source uses <code>nips_2017.sty</code>, custom macros, floats, equations, tables, figures, and bibliography commands. Browser-side parsers such as LaTeX.js could not simply consume it; real TeX tooling was required.
+        </p>
+      </article>
+      <article>
+        <h3>Visual order and source order diverge.</h3>
+        <p>
+          In section 6.3, the source places Table 4 immediately after the heading, before “To evaluate if the Transformer…”. The PDF floats the table elsewhere, while generated HTML initially preserved source order. A semantic reader needs both structure and render-location mappings.
+        </p>
+      </article>
+      <article>
+        <h3>Figures and math are not first-class enough.</h3>
+        <p>
+          TeX4ht generated tiny explicit image sizes and dark-mode-sensitive CSS. Math fragments became generated images or styled spans. The paper looked readable only after post-processing the compiled output.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="science-home-accessibility">
+    <div class="science-home-section-heading">
+      <p class="paper-reader-kicker">Accessibility is not optional metadata</p>
+      <h2>Page-first documents exclude people and tools that need structure.</h2>
+      <p>
+        Accessibility fails for the same reason machine understanding fails: the document does not expose its meaning as stable, navigable objects. A semantic paper graph can make accessibility a first-class property rather than a fragile afterthought.
+      </p>
+    </div>
+
+    <div class="science-accessibility-grid">
+      <article>
+        <h3>Screen readers need structure.</h3>
+        <p>
+          Headings, paragraphs, equations, figure captions, table headers, citations, and footnotes should be available as navigable objects, not inferred from visual layout or reading-order guesses.
+        </p>
+      </article>
+      <article>
+        <h3>Math needs alternate representations.</h3>
+        <p>
+          Equations should carry source LaTeX, readable text, speech-friendly descriptions, and links to the surrounding definitions. A rendered formula image alone is not enough.
+        </p>
+      </article>
+      <article>
+        <h3>Figures and tables need semantics.</h3>
+        <p>
+          A figure should include alt text, caption, source data where possible, and references from the body. Tables should expose rows, columns, headers, units, and notes.
+        </p>
+      </article>
+      <article>
+        <h3>Selections need stable anchors.</h3>
+        <p>
+          Assistive technologies, annotation tools, translation tools, and LLM interfaces all benefit when every passage can be addressed by section, block, and character range.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="science-home-costs">
+    <div>
+      <p class="paper-reader-kicker">Cost of the bog</p>
+      <h2>Document friction likely wastes hundreds of millions of hours per year.</h2>
+      <p>
+        A conservative model: 100 million knowledge workers losing only 10 minutes per week to broken copy/paste, PDF extraction, table reconstruction, inaccessible scans, citation cleanup, or format conversion equals roughly 867 million hours per year. At $50/hour, that is about $43 billion annually. At 30 minutes per week, the number approaches $130 billion.
+      </p>
+      <p>
+        For scientific literature alone, if 10 million researchers, clinicians, analysts, and students lose one hour per week to paper-format friction, that is around 500 million hours per year. The larger cost is cognitive: interrupted reasoning, duplicated interpretation, abandoned curiosity, slower review, and inaccessible expertise.
+      </p>
+    </div>
+    <div class="science-cost-callout">
+      <strong>$50B–$200B+</strong>
+      <span>plausible annual global productivity loss from document-format friction</span>
+    </div>
+  </section>
+
+  <section class="science-home-package">
+    <div>
+      <p class="paper-reader-kicker">Target package</p>
+      <h2>A paper should be distributed as more than a PDF.</h2>
+      <p>
+        The long-term shape is a portable package containing rendered HTML/PDF, semantic JSON, assets, bibliography, render mappings, and annotations, including the LLM questions and answers created while reading.
+      </p>
+      <.link href={~p"/papers/attention/export"} class="science-package-export">
+        <span>Export current demo package</span>
+        <small>Zip archive with semantic graph and LLM Q&A</small>
+      </.link>
+    </div>
+    <pre><code>paper.scidoc/
+  document.json
+  render.html
+  render.pdf
+  assets/
+  bibliography.json
+  mappings/pdf-locations.json
+  annotations/
+    llm-questions.json</code></pre>
+  </section>
+</section>

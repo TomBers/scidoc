@@ -1,0 +1,40 @@
+\expandafter\ifx\csname doTocEntry\endcsname\relax \expandafter\endinput\fi 
+\doTocEntry\tocsection{1}{\csname a:TocLink\endcsname{1}{x1-10001}{QQ2-1-1}{Introduction}}{5}\relax 
+\doTocEntry\tocsection{2}{\csname a:TocLink\endcsname{1}{x1-20002}{QQ2-1-2}{Background}}{6}\relax 
+\doTocEntry\tocsection{3}{\csname a:TocLink\endcsname{1}{x1-30003}{QQ2-1-3}{Model Architecture}}{6}\relax 
+\doTocEntry\toclof{1}{\csname a:TocLink\endcsname{1}{x1-30011}{}{\ignorespaces The Transformer - model architecture.}}{figure}\relax 
+\doTocEntry\tocsubsection{3.1}{\csname a:TocLink\endcsname{1}{x1-40003.1}{QQ2-1-5}{Encoder and Decoder Stacks}}{9}\relax 
+\doTocEntry\tocparagraph{}{\csname a:TocLink\endcsname{1}{x1-5000}{QQ2-1-6}{Encoder:}}{9}\relax 
+\doTocEntry\tocparagraph{}{\csname a:TocLink\endcsname{1}{x1-6000}{QQ2-1-7}{Decoder:}}{9}\relax 
+\doTocEntry\tocsubsection{3.2}{\csname a:TocLink\endcsname{1}{x1-70003.2}{QQ2-1-8}{Attention}}{9}\relax 
+\doTocEntry\tocsubsubsection{3.2.1}{\csname a:TocLink\endcsname{1}{x1-80003.2.1}{QQ2-1-9}{Scaled Dot-Product Attention}}{9}\relax 
+\doTocEntry\tocsubsubsection{3.2.2}{\csname a:TocLink\endcsname{1}{x1-90003.2.2}{QQ2-1-10}{Multi-Head Attention}}{10}\relax 
+\doTocEntry\toclof{2}{\csname a:TocLink\endcsname{1}{x1-90012}{}{\ignorespaces (left) Scaled Dot-Product Attention. (right) Multi-Head Attention consists of several attention layers running in parallel.}}{figure}\relax 
+\doTocEntry\tocsubsubsection{3.2.3}{\csname a:TocLink\endcsname{1}{x1-100003.2.3}{QQ2-1-12}{Applications of Attention in our Model}}{13}\relax 
+\doTocEntry\tocsubsection{3.3}{\csname a:TocLink\endcsname{1}{x1-110003.3}{QQ2-1-13}{Position-wise Feed-Forward Networks}}{14}\relax 
+\doTocEntry\tocsubsection{3.4}{\csname a:TocLink\endcsname{1}{x1-120003.4}{QQ2-1-14}{Embeddings and Softmax}}{14}\relax 
+\doTocEntry\tocsubsection{3.5}{\csname a:TocLink\endcsname{1}{x1-130003.5}{QQ2-1-15}{Positional Encoding}}{15}\relax 
+\doTocEntry\tocsection{4}{\csname a:TocLink\endcsname{1}{x1-140004}{QQ2-1-16}{Why Self-Attention}}{15}\relax 
+\doTocEntry\toclot{1}{\csname a:TocLink\endcsname{1}{x1-140011}{}{\ignorespaces  Maximum path lengths, per-layer complexity and minimum number of sequential operations for different layer types. $n$ is the sequence length, $d$ is the representation dimension, $k$ is the kernel size of convolutions and $r$ the size of the neighborhood in restricted self-attention.}}{table}\relax 
+\doTocEntry\tocsection{5}{\csname a:TocLink\endcsname{1}{x1-150005}{QQ2-1-18}{Training}}{18}\relax 
+\doTocEntry\tocsubsection{5.1}{\csname a:TocLink\endcsname{1}{x1-160005.1}{QQ2-1-19}{Training Data and Batching}}{18}\relax 
+\doTocEntry\tocsubsection{5.2}{\csname a:TocLink\endcsname{1}{x1-170005.2}{QQ2-1-20}{Hardware and Schedule}}{19}\relax 
+\doTocEntry\tocsubsection{5.3}{\csname a:TocLink\endcsname{1}{x1-180005.3}{QQ2-1-21}{Optimizer}}{19}\relax 
+\doTocEntry\tocsubsection{5.4}{\csname a:TocLink\endcsname{1}{x1-190005.4}{QQ2-1-22}{Regularization}}{19}\relax 
+\doTocEntry\tocparagraph{}{\csname a:TocLink\endcsname{1}{x1-20000}{QQ2-1-23}{Residual Dropout}}{19}\relax 
+\doTocEntry\tocparagraph{}{\csname a:TocLink\endcsname{1}{x1-21000}{QQ2-1-24}{Label Smoothing}}{20}\relax 
+\doTocEntry\tocsection{6}{\csname a:TocLink\endcsname{1}{x1-220006}{QQ2-1-25}{Results}}{20}\relax 
+\doTocEntry\tocsubsection{6.1}{\csname a:TocLink\endcsname{1}{x1-230006.1}{QQ2-1-26}{Machine Translation}}{20}\relax 
+\doTocEntry\toclot{2}{\csname a:TocLink\endcsname{1}{x1-230012}{}{\ignorespaces The Transformer achieves better BLEU scores than previous state-of-the-art models on the English-to-German and English-to-French newstest2014 tests at a fraction of the training cost. }}{table}\relax 
+\doTocEntry\tocsubsection{6.2}{\csname a:TocLink\endcsname{1}{x1-240006.2}{QQ2-1-28}{Model Variations}}{22}\relax 
+\doTocEntry\toclot{3}{\csname a:TocLink\endcsname{1}{x1-240013}{}{\ignorespaces Variations on the Transformer architecture. Unlisted values are identical to those of the base model. All metrics are on the English-to-German translation development set, newstest2013. Listed perplexities are per-wordpiece, according to our byte-pair encoding, and should not be compared to per-word perplexities.}}{table}\relax 
+\doTocEntry\tocsubsection{6.3}{\csname a:TocLink\endcsname{1}{x1-250006.3}{QQ2-1-30}{English Constituency Parsing}}{24}\relax 
+\doTocEntry\toclot{4}{\csname a:TocLink\endcsname{1}{x1-250014}{}{\ignorespaces The Transformer generalizes well to English constituency parsing (Results are on Section 23 of WSJ)}}{table}\relax 
+\doTocEntry\tocsection{7}{\csname a:TocLink\endcsname{1}{x1-260007}{QQ2-1-32}{Conclusion}}{26}\relax 
+\doTocEntry\tocparagraph{}{\csname a:TocLink\endcsname{1}{x1-27000}{QQ2-1-33}{Acknowledgements}}{27}\relax 
+\doTocEntry\toclikesection{}{\csname a:TocLink\endcsname{1}{x1-28000}{QQ2-1-34}{References}}{27}\relax 
+\doTocEntry\toclikesection{}{\csname a:TocLink\endcsname{1}{x1-29000}{QQ2-1-35}{Attention Visualizations}}{31}\relax 
+\doTocEntry\toclof{3}{\csname a:TocLink\endcsname{1}{x1-290013}{}{\ignorespaces An example of the attention mechanism following long-distance dependencies in the encoder self-attention in layer 5 of 6. Many of the attention heads attend to a distant dependency of the verb `making', completing the phrase `making...more difficult'. Attentions here shown only for the word `making'. Different colors represent different heads. Best viewed in color.}}{figure}\relax 
+\doTocEntry\toclof{4}{\csname a:TocLink\endcsname{1}{x1-290024}{}{\ignorespaces Two attention heads, also in layer 5 of 6, apparently involved in anaphora resolution. Top: Full attentions for head 5. Bottom: Isolated attentions from just the word `its' for attention heads 5 and 6. Note that the attentions are very sharp for this word.}}{figure}\relax 
+\doTocEntry\toclof{5}{\csname a:TocLink\endcsname{1}{x1-290035}{}{\ignorespaces Many of the attention heads exhibit behaviour that seems related to the structure of the sentence. We give two such examples above, from two different heads from the encoder self-attention at layer 5 of 6. The heads clearly learned to perform different tasks.}}{figure}\relax 
+\par 
