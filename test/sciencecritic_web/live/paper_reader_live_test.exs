@@ -16,13 +16,11 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
              "#paper-compiled-root[data-paper-compiled-root][phx-update='ignore']"
            )
 
-    assert has_element?(view, ".paper-workspace-map")
+    assert has_element?(view, ".paper-panel-toolbar")
     assert has_element?(view, "a.paper-package-export-link[href='/papers/attention/export']")
-    assert has_element?(view, ".paper-accessibility-grid")
     assert has_element?(view, "[data-paper-style-kind='theme']")
     assert has_element?(view, "[data-paper-style-kind='font']")
     assert has_element?(view, "[data-paper-style-kind='spacing']")
-    assert has_element?(view, ".paper-knowledge-graph")
     assert has_element?(view, ".semantic-outline")
     assert has_element?(view, "#paper-section-navigator details")
     assert has_element?(view, "[data-paper-nav-target='introduction']")
@@ -30,7 +28,7 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
 
     html = render(view)
     assert html =~ "Attention Is All You Need"
-    assert html =~ "Papers should become navigable knowledge graphs"
+    assert html =~ "Ask the paper"
     assert html =~ "/generated_papers/attention/ms.html"
     refute html =~ "LaTeX.js renderer"
     refute html =~ "document-scene"
@@ -39,17 +37,31 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
   test "stores a selected passage question and follow-up", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/papers/attention")
 
-    render_hook(view, "paper_selection_captured", %{
+    selection_attrs = %{
       "selected_text" => "self-attention",
       "section_id" => "attention",
       "block_id" => "compiled-block-42"
-    })
+    }
+
+    render_hook(view, "paper_selection_captured", selection_attrs)
 
     assert has_element?(view, "#paper-selection-question-form")
 
     view
     |> form("#paper-selection-question-form", qa: %{question: "What does this mean here?"})
     |> render_submit()
+
+    view
+    |> form("#paper-selection-question-form", qa: %{question: "What does this mean here?"})
+    |> render_submit()
+
+    {:ok, selection} =
+      PaperQA.get_or_create_selection(
+        Map.put(selection_attrs, "paper_id", "attention-is-all-you-need")
+      )
+
+    questions = PaperQA.list_selection_questions(selection.id)
+    assert length(questions) == 1
 
     assert has_element?(view, ".paper-question-thread article")
     html = render(view)

@@ -162,48 +162,23 @@ defmodule SciencecriticWeb.PaperReaderLive do
             class="paper-selection-panel semantic-argument-panel"
             aria-label="Semantic paper workspace"
           >
-            <div class="paper-workspace-header">
-              <p class="paper-reader-kicker">Semantic paper workspace</p>
-              <h2>Papers should become navigable knowledge graphs.</h2>
-              <p>
-                Select a term or passage in the paper. The reader keeps the source location, accessible structure, and LLM question together as a reusable knowledge node.
-              </p>
+            <div class="paper-panel-toolbar">
+              <div>
+                <p class="paper-reader-kicker">Workspace</p>
+                <h2>Ask the paper</h2>
+              </div>
               <.link href={~p"/papers/attention/export"} class="paper-package-export-link">
-                <.icon name="hero-arrow-down-tray" class="size-4" /> Export package
+                <.icon name="hero-arrow-down-tray" class="size-4" /> Export
               </.link>
             </div>
 
-            <div class="paper-workspace-map" aria-label="Knowledge capture flow">
-              <div>
-                <span>1</span>
-                <strong>Read</strong>
-                <small>Rendered TeX with stable anchors</small>
-              </div>
-              <div>
-                <span>2</span>
-                <strong>Select</strong>
-                <small>Passage, block, section, character count</small>
-              </div>
-              <div>
-                <span>3</span>
-                <strong>Question</strong>
-                <small>Focused prompt with document grounding</small>
-              </div>
-              <div>
-                <span>4</span>
-                <strong>Capture</strong>
-                <small>Explanation, challenge, relation, note</small>
-              </div>
-            </div>
-
             <section
-              class="paper-workspace-section paper-selection-panel-inner"
+              class="paper-workspace-section paper-selection-panel-inner paper-primary-workflow"
               aria-labelledby="context-heading"
             >
               <div class="paper-workspace-section-heading">
                 <div>
-                  <p class="paper-reader-kicker">LLM context</p>
-                  <h3 id="context-heading">Question a selected term</h3>
+                  <h3 id="context-heading">Selection</h3>
                 </div>
               </div>
               <p
@@ -211,29 +186,17 @@ defmodule SciencecriticWeb.PaperReaderLive do
                 data-paper-selection-empty
                 hidden={not is_nil(@selected_selection)}
               >
-                Select text in the compiled paper to build a grounded question node.
+                Select text in the paper to ask a grounded question.
               </p>
               <div
                 class="paper-selection-result"
                 data-paper-selection-result
                 hidden={is_nil(@selected_selection)}
               >
-                <p class="paper-selection-meta" data-paper-selection-meta></p>
-                <blockquote data-paper-selection-text></blockquote>
-
-                <div
-                  class="paper-context-card"
-                  data-paper-capture-node
-                  hidden={is_nil(@selected_selection)}
-                >
-                  <div class="paper-context-card-header">
-                    <span>Source node</span>
-                    <strong data-paper-selection-term>
-                      {if @selected_selection,
-                        do: @selected_selection.selected_text,
-                        else: "Selected passage"}
-                    </strong>
-                  </div>
+                <div class="paper-selection-summary" data-paper-capture-node>
+                  <blockquote data-paper-selection-text>
+                    {if @selected_selection, do: @selected_selection.selected_text, else: ""}
+                  </blockquote>
                   <dl>
                     <div>
                       <dt>Section</dt>
@@ -252,6 +215,14 @@ defmodule SciencecriticWeb.PaperReaderLive do
                       </dd>
                     </div>
                   </dl>
+                  <p class="paper-selection-meta" data-paper-selection-meta>
+                    {selection_meta(@selected_selection)}
+                  </p>
+                  <span class="sr-only" data-paper-selection-term>
+                    {if @selected_selection,
+                      do: @selected_selection.selected_text,
+                      else: "Selected passage"}
+                  </span>
                 </div>
 
                 <.form
@@ -268,7 +239,7 @@ defmodule SciencecriticWeb.PaperReaderLive do
                     placeholder="What does this mean in the paper?"
                     class="paper-question-input"
                   />
-                  <button type="submit">
+                  <button type="submit" phx-disable-with="Asking...">
                     <.icon name="hero-paper-airplane" class="size-4" /> Ask and save
                   </button>
                 </.form>
@@ -276,26 +247,14 @@ defmodule SciencecriticWeb.PaperReaderLive do
                 <p :if={@qa_error} class="paper-question-error">{@qa_error}</p>
               </div>
 
-              <div class="paper-knowledge-graph" aria-label="Captured knowledge graph preview">
-                <div class="paper-knowledge-node source">
-                  <span>Paper passage</span>
-                  <strong data-paper-graph-source>
-                    {if @selected_selection,
-                      do: @selected_selection.section_id,
-                      else: "Attention Is All You Need"}
-                  </strong>
-                </div>
-                <div class="paper-knowledge-edge" aria-hidden="true"></div>
-                <div class="paper-knowledge-node question">
-                  <span>Question node</span>
-                  <strong data-paper-graph-question>What does this term mean here?</strong>
-                </div>
-                <div class="paper-knowledge-edge" aria-hidden="true"></div>
-                <div class="paper-knowledge-node answer">
-                  <span>Context nodes</span>
-                  <strong>Explain · challenge · relate</strong>
-                </div>
-              </div>
+              <span class="sr-only" data-paper-graph-source>
+                {if @selected_selection,
+                  do: @selected_selection.section_id,
+                  else: "Attention Is All You Need"}
+              </span>
+              <span class="sr-only" data-paper-graph-question>
+                {selection_question_prompt(@selected_selection)}
+              </span>
 
               <div :if={@selection_questions != []} class="paper-question-thread">
                 <article :for={question <- @selection_questions} id={"paper-question-#{question.id}"}>
@@ -321,7 +280,7 @@ defmodule SciencecriticWeb.PaperReaderLive do
                       placeholder="Ask a follow-up"
                       class="paper-follow-up-input"
                     />
-                    <button type="submit" aria-label="Ask follow-up">
+                    <button type="submit" aria-label="Ask follow-up" phx-disable-with="Asking...">
                       <.icon name="hero-arrow-right" class="size-4" />
                     </button>
                   </.form>
@@ -330,13 +289,12 @@ defmodule SciencecriticWeb.PaperReaderLive do
             </section>
 
             <section
-              class="paper-workspace-section paper-saved-questions"
+              class="paper-workspace-section paper-saved-questions paper-secondary-workflow"
               aria-labelledby="saved-questions-heading"
             >
               <div class="paper-workspace-section-heading">
                 <div>
-                  <p class="paper-reader-kicker">Saved context</p>
-                  <h3 id="saved-questions-heading">Question history</h3>
+                  <h3 id="saved-questions-heading">History</h3>
                 </div>
                 <span>{saved_question_count(@saved_selections)} saved</span>
               </div>
@@ -370,14 +328,11 @@ defmodule SciencecriticWeb.PaperReaderLive do
               </div>
             </section>
 
-            <section class="paper-workspace-section" aria-labelledby="document-map-heading">
-              <div class="paper-workspace-section-heading">
-                <div>
-                  <p class="paper-reader-kicker">Navigation</p>
-                  <h3 id="document-map-heading">Document map</h3>
-                </div>
-                <span>{@stats.sections} sections</span>
-              </div>
+            <details class="paper-workspace-section paper-panel-disclosure">
+              <summary>
+                <span>Document map</span>
+                <small>{@stats.sections} sections</small>
+              </summary>
               <div class="semantic-section-dropdowns" id="paper-section-navigator">
                 <details
                   :for={{group, index} <- Enum.with_index(@outline_groups)}
@@ -405,14 +360,14 @@ defmodule SciencecriticWeb.PaperReaderLive do
                   </ol>
                 </details>
               </div>
-            </section>
+            </details>
 
-            <section class="paper-workspace-section" aria-labelledby="readability-heading">
+            <section
+              class="paper-workspace-section paper-view-controls"
+              aria-labelledby="readability-heading"
+            >
               <div class="paper-workspace-section-heading">
-                <div>
-                  <p class="paper-reader-kicker">Readability</p>
-                  <h3 id="readability-heading">Adapt the paper view</h3>
-                </div>
+                <h3 id="readability-heading">View</h3>
               </div>
               <div class="paper-reading-controls" aria-label="Reader display controls">
                 <div class="paper-reading-control-group">
@@ -487,42 +442,6 @@ defmodule SciencecriticWeb.PaperReaderLive do
                   </div>
                 </div>
               </div>
-              <div class="paper-accessibility-grid" aria-label="Parsed semantic document statistics">
-                <div>
-                  <.icon name="hero-bars-3-bottom-left" class="size-4" />
-                  <strong>{@stats.blocks}</strong>
-                  <span>text blocks</span>
-                </div>
-                <div>
-                  <.icon name="hero-photo" class="size-4" />
-                  <strong>{@stats.figures}</strong>
-                  <span>figures</span>
-                </div>
-                <div>
-                  <.icon name="hero-table-cells" class="size-4" />
-                  <strong>{@stats.tables}</strong>
-                  <span>tables</span>
-                </div>
-                <div>
-                  <.icon name="hero-variable" class="size-4" />
-                  <strong>{@stats.equations}</strong>
-                  <span>equations</span>
-                </div>
-              </div>
-              <ul class="paper-accessibility-checklist">
-                <li>
-                  <.icon name="hero-check-circle" class="size-4" />
-                  Same source, multiple readable presentations
-                </li>
-                <li>
-                  <.icon name="hero-check-circle" class="size-4" />
-                  Changes preserve section and block anchors
-                </li>
-                <li>
-                  <.icon name="hero-check-circle" class="size-4" />
-                  Figures, tables, and equations stay addressable
-                </li>
-              </ul>
             </section>
           </aside>
 
@@ -707,6 +626,26 @@ defmodule SciencecriticWeb.PaperReaderLive do
     selections
     |> Enum.flat_map(& &1.questions)
     |> length()
+  end
+
+  defp selection_meta(nil), do: ""
+
+  defp selection_meta(selection) do
+    "#{selection.section_id} · #{selection.block_id} · #{String.length(selection.selected_text)} characters selected"
+  end
+
+  defp selection_question_prompt(nil), do: "What does this term mean here?"
+
+  defp selection_question_prompt(selection) do
+    "What does “#{truncate_text(selection.selected_text, 54)}” mean here?"
+  end
+
+  defp truncate_text(value, max_length) do
+    if String.length(value) <= max_length do
+      value
+    else
+      "#{String.slice(value, 0, max_length - 1)}…"
+    end
   end
 
   defp annotation_json(selections) do

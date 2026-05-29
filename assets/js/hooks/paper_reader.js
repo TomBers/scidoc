@@ -472,7 +472,7 @@ const PaperReader = {
     const text = selection?.toString().trim() || "";
 
     if (!selection || selection.rangeCount === 0 || text.length === 0) {
-      this.clearSelectionPanel();
+      if (!this.selectionPanelHasContext()) this.clearSelectionPanel();
       return;
     }
 
@@ -484,7 +484,6 @@ const PaperReader = {
       !this.selectionBelongsToReader(container) &&
       !this.selectionBelongsToReader(startContainer)
     ) {
-      this.clearSelectionPanel();
       return;
     }
 
@@ -502,10 +501,24 @@ const PaperReader = {
 
   selectionBelongsToReader(container) {
     if (!container) return false;
-    if (this.el.contains(container)) return true;
+
     return (
       this.compiledShadowRoot &&
       container.getRootNode() === this.compiledShadowRoot
+    ) || (
+      this.el.querySelector(".paper-document")?.contains(container) &&
+      container.closest?.("[data-paper-block-id], [data-paper-section-id]")
+    );
+  },
+
+  selectionPanelHasContext() {
+    const result = this.el.querySelector("[data-paper-selection-result]");
+    const textTarget = this.el.querySelector("[data-paper-selection-text]");
+
+    return Boolean(
+      result &&
+        !result.hidden &&
+        (textTarget?.textContent || "").trim().length > 0,
     );
   },
 
@@ -538,6 +551,9 @@ const PaperReader = {
     const signature = `${sectionId}::${blockId}::${text}`;
     if (signature !== this.lastSelectionSignature) {
       this.lastSelectionSignature = signature;
+      this.el
+        .querySelector(".paper-selection-panel")
+        ?.scrollTo({ top: 0, behavior: "smooth" });
       this.pushEvent("paper_selection_captured", {
         selected_text: text,
         section_id: sectionId,

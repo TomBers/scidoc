@@ -49,32 +49,37 @@ defmodule Sciencecritic.PaperQA do
   def create_question(%Selection{} = selection, question_text, opts) do
     parent_question_id = Keyword.get(opts, :parent_question_id)
     previous_questions = previous_questions(selection.id, parent_question_id)
+    question_text = String.trim(question_text)
 
-    {:ok, question} =
-      %Question{}
-      |> Question.changeset(%{
-        paper_selection_id: selection.id,
-        parent_question_id: parent_question_id,
-        question: question_text,
-        status: "pending"
-      })
-      |> Repo.insert()
+    with nil <- get_existing_question(selection.id, parent_question_id, question_text),
+         {:ok, question} <-
+           %Question{}
+           |> Question.changeset(%{
+             paper_selection_id: selection.id,
+             parent_question_id: parent_question_id,
+             question: question_text,
+             status: "pending"
+           })
+           |> Repo.insert() do
+      case QuestionAnswerer.answer(selection, question_text, previous_questions) do
+        {:ok, answer, prompt} ->
+          update_question(question, %{
+            answer: answer,
+            prompt_payload: prompt,
+            status: "answered",
+            error: nil
+          })
 
-    case QuestionAnswerer.answer(selection, question_text, previous_questions) do
-      {:ok, answer, prompt} ->
-        update_question(question, %{
-          answer: answer,
-          prompt_payload: prompt,
-          status: "answered",
-          error: nil
-        })
-
-      {:error, reason, prompt} ->
-        update_question(question, %{
-          prompt_payload: prompt,
-          status: "failed",
-          error: reason
-        })
+        {:error, reason, prompt} ->
+          update_question(question, %{
+            prompt_payload: prompt,
+            status: "failed",
+            error: reason
+          })
+      end
+    else
+      %Question{} = question -> {:ok, question}
+      {:error, changeset} -> {:error, changeset}
     end
   end
 
@@ -116,6 +121,32 @@ defmodule Sciencecritic.PaperQA do
     question
     |> Question.changeset(attrs)
     |> Repo.update()
+  end
+
+  defp get_existing_question(selection_id, nil, question_text) do
+    Question
+    |> where(
+      [question],
+      question.paper_selection_id == ^selection_id and
+        is_nil(question.parent_question_id) and
+        question.question == ^question_text
+    )
+    |> order_by([question], asc: question.id)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  defp get_existing_question(selection_id, parent_question_id, question_text) do
+    Question
+    |> where(
+      [question],
+      question.paper_selection_id == ^selection_id and
+        question.parent_question_id == ^parent_question_id and
+        question.question == ^question_text
+    )
+    |> order_by([question], asc: question.id)
+    |> limit(1)
+    |> Repo.one()
   end
 
   defp previous_questions(_selection_id, nil), do: []
