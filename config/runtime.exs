@@ -28,6 +28,10 @@ if config_env() == :prod do
       For example: /etc/sciencecritic/sciencecritic.db
       """
 
+  database_path
+  |> Path.dirname()
+  |> File.mkdir_p!()
+
   config :sciencecritic, Sciencecritic.Repo,
     database: database_path,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
