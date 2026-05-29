@@ -3,4 +3,5 @@ set -euo pipefail
 
 mix deps.get --only prod
 mix assets.setup
+mix compile
 mix assets.deploy
