@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+mix ecto.create --quiet || true
+mix ecto.migrate
 mix phx.server
