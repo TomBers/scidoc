@@ -41,7 +41,7 @@ Use this start command:
 ./bin/render-start
 ```
 
-The scripts are intentionally small:
+The scripts build and run a Phoenix release:
 
 ```bash
 # bin/render-build
@@ -49,19 +49,20 @@ mix deps.get --only prod
 mix assets.setup
 mix compile
 mix assets.deploy
+mix release
 
 # bin/render-start
-mix ecto.create --quiet || true
-mix ecto.migrate
-mix phx.server
+_build/prod/rel/sciencecritic/bin/migrate
+exec _build/prod/rel/sciencecritic/bin/server
 ```
 
 Why:
 
 * `mix phx.digest` only digests files that already exist; it does not build `assets/css/app.css` or `assets/js/app.js`.
 * `mix assets.deploy` runs Tailwind, esbuild, and `phx.digest`, which produces `priv/static/cache_manifest.json` for production static serving.
+* `mix release` packages the compiled app so Render does not need to start the service through Mix.
 * SQLite must live in a writable directory. `eacces` usually means `DATABASE_PATH` points somewhere Render cannot write, or the parent directory is not on a mounted disk.
-* `bin/render-start` runs `mix ecto.create --quiet || true` and `mix ecto.migrate` before the server starts so tables such as `paper_selections` exist.
+* `bin/render-start` runs the release migration command before the server starts so tables such as `paper_selections` exist.
 * The GitHub repo can be named `scidoc` while the Phoenix/OTP app remains `:sciencecritic`; those names do not need to match.
 
 ## Useful commands

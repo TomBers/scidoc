@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mix ecto.create --quiet || true
-mix ecto.migrate
-mix phx.server
+_build/prod/rel/sciencecritic/bin/migrate
+exec _build/prod/rel/sciencecritic/bin/server
