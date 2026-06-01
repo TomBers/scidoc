@@ -47,7 +47,7 @@ defmodule Sciencecritic.PaperPackage do
 
     %{
       paper: paper,
-      selections: PaperQA.list_paper_selections(@attention_id),
+      selections: PaperQA.list_paper_question_selections(@attention_id),
       render_html_path: Path.join(static_root, "generated_papers/attention/ms.html"),
       render_pdf_path: Path.join(static_root, "pdfs/attention.pdf"),
       assets_root: Path.join(static_root, "generated_papers/attention")

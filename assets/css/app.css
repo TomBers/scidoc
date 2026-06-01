@@ -370,6 +370,8 @@
     grid-column: 1;
     grid-row: 1;
     min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 .paper-document-header {
@@ -557,8 +559,14 @@
     grid-row: 1;
     display: grid;
     gap: 0.85rem;
-    align-self: stretch;
+    align-self: start;
     align-content: start;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.15rem;
     overflow-anchor: none;
 }
 
@@ -582,6 +590,12 @@
 .paper-workspace-intro {
     display: grid;
     gap: 0.75rem;
+    border: 0;
+    border-radius: 0;
+    padding: 0.3rem 0.2rem 0.15rem;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
 }
 
 .paper-ai-history-panel,
@@ -591,11 +605,7 @@
 }
 
 .paper-ai-history-panel {
-    position: sticky;
-    top: 1rem;
-    max-height: calc(100vh - 2rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    overflow: visible;
     overflow-anchor: none;
 }
 
@@ -1041,6 +1051,15 @@
     transition: transform 160ms ease;
 }
 
+.semantic-section-dropdown.is-leaf summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    cursor: default;
+}
+
+.semantic-section-dropdown.is-leaf summary::after {
+    display: none;
+}
+
 .semantic-section-dropdown[open] summary::after {
     transform: translateY(0.18rem) rotate(225deg);
 }
@@ -1358,7 +1377,10 @@
 .paper-question-thread {
     display: grid;
     gap: 0.65rem;
+    max-height: 18rem;
     margin-top: 0.85rem;
+    overflow-y: auto;
+    padding-right: 0.2rem;
 }
 
 .paper-question-thread article {
@@ -1423,6 +1445,9 @@
 .paper-saved-question-list {
     display: grid;
     gap: 0.42rem;
+    max-height: 14rem;
+    overflow-y: auto;
+    padding-right: 0.2rem;
 }
 
 .paper-saved-question-list button {
@@ -1566,7 +1591,10 @@
 .paper-compiled-root {
     display: block;
     width: 100%;
+    max-width: 100%;
     color-scheme: light;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
 }
 
 .semantic-outline {
@@ -1647,11 +1675,21 @@
     .paper-reader-shell {
         display: flex;
         flex-direction: column;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 
+    .paper-document,
+    .paper-compiled-root {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .paper-reader-rail,
     .paper-selection-panel {
         position: static;
-        order: -1;
+        max-height: none;
+        overflow: visible;
     }
 
     .semantic-outline ol {

@@ -83,6 +83,7 @@ const PaperReader = {
       this.moveLeadingFloatsAfterIntroParagraph(wrapper);
       this.decorateCompiledRoot(wrapper);
       this.decorateCompiledSectionAnchors(wrapper);
+      this.decorateCompiledBlockSections(wrapper);
 
       shadow.replaceChildren(style, wrapper);
       this.applyReaderStyle();
@@ -153,6 +154,35 @@ const PaperReader = {
       }
 
       ${css}
+
+      .compiled-paper-document > .center:first-child {
+        display: none !important;
+      }
+
+      .compiled-paper-document {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .compiled-paper-document div.author,
+      .compiled-paper-document div.thanks {
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+      }
+
+      .compiled-paper-document table,
+      .compiled-paper-document div.tabular,
+      .compiled-paper-document table.align,
+      .compiled-paper-document table.align-star,
+      .compiled-paper-document table.equation,
+      .compiled-paper-document table.equation-star {
+        max-width: 100% !important;
+      }
+
+      .compiled-paper-document img {
+        max-width: 100%;
+        height: auto;
+      }
 
       :host([data-reader-font="large"]) .compiled-paper-document {
         font-size: 118%;
@@ -351,6 +381,24 @@ const PaperReader = {
     }
   },
 
+  decorateCompiledBlockSections(root) {
+    const headingSelector =
+      ".sectionHead, .subsectionHead, .subsubsectionHead, .likesectionHead, h2, h3, h4, h5";
+    let currentSectionId = root.dataset.paperSectionId || "compiled-tex4ht";
+
+    for (const element of root.querySelectorAll(
+      `[data-paper-block-id], ${headingSelector}`,
+    )) {
+      if (element.matches(headingSelector) && element.dataset.paperSectionId) {
+        currentSectionId = element.dataset.paperSectionId;
+      }
+
+      if (element.dataset.paperBlockId) {
+        element.dataset.paperSectionId = element.dataset.paperSectionId || currentSectionId;
+      }
+    }
+  },
+
   navigateToPaperSection(event) {
     const link = event.target.closest("[data-paper-nav-target]");
     if (!link || !this.el.contains(link)) return;
@@ -391,7 +439,7 @@ const PaperReader = {
 
     this.focusSavedSelection({ selectionId, sectionId, blockId, selectedText });
 
-    return false;
+    return true;
   },
 
   focusSavedSelection({ selectionId, sectionId, blockId, selectedText }) {
@@ -540,13 +588,14 @@ const PaperReader = {
     result.hidden = false;
     if (captureNode) captureNode.hidden = false;
     textTarget.textContent = text;
-    metaTarget.textContent = `${sectionId} · ${blockId} · ${text.length} characters selected`;
+    metaTarget.textContent = `${formatSectionLabel(sectionId)} · ${blockId} · ${text.length} characters selected`;
     if (termTarget) termTarget.textContent = text;
-    if (sectionTarget) sectionTarget.textContent = sectionId;
+    if (sectionTarget) sectionTarget.textContent = formatSectionLabel(sectionId);
     if (blockTarget) blockTarget.textContent = blockId;
     if (graphSourceTarget) graphSourceTarget.textContent = sectionId;
     if (graphQuestionTarget)
       graphQuestionTarget.textContent = `What does “${truncateText(text, 54)}” mean here?`;
+    this.updateSelectionInputs({ text, sectionId, blockId });
 
     const signature = `${sectionId}::${blockId}::${text}`;
     if (signature !== this.lastSelectionSignature) {
@@ -584,7 +633,21 @@ const PaperReader = {
     if (graphSourceTarget) graphSourceTarget.textContent = "Attention Is All You Need";
     if (graphQuestionTarget)
       graphQuestionTarget.textContent = "What does this term mean here?";
+    this.updateSelectionInputs();
     this.lastSelectionSignature = null;
+  },
+
+  updateSelectionInputs({ text = "", sectionId = "", blockId = "" } = {}) {
+    const values = {
+      selected_text: text,
+      section_id: sectionId,
+      block_id: blockId,
+    };
+
+    for (const [name, value] of Object.entries(values)) {
+      const input = this.el.querySelector(`[data-paper-selection-input="${name}"]`);
+      if (input) input.value = value;
+    }
   },
 
   decorateSavedAnnotations() {
@@ -703,6 +766,17 @@ function truncateText(value, maxLength) {
 
 function capitalize(value) {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function formatSectionLabel(value) {
+  if (!value) return "Unknown section";
+  if (value === "compiled-tex4ht") return "Compiled HTML";
+
+  return value
+    .split("-")
+    .filter(Boolean)
+    .map(capitalize)
+    .join(" ");
 }
 
 function cssEscape(value) {

@@ -30,7 +30,7 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
 
     html = render(view)
     assert html =~ "Attention Is All You Need"
-    assert html =~ "Ask AI / History"
+    assert html =~ "Public Q&amp;A"
     assert html =~ "Ask about a selection"
     assert html =~ "/generated_papers/attention/ms.html"
     refute html =~ "LaTeX.js renderer"
@@ -104,7 +104,7 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
 
     html = render(view)
     assert html =~ "Scaled Dot-Product Attention"
-    assert html =~ "1 saved"
+    assert html =~ "1 shared"
 
     view
     |> element("[data-paper-saved-selection-link]")
