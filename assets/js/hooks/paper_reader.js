@@ -24,6 +24,7 @@ const PaperReader = {
 
   updated() {
     this.decorateSavedAnnotations();
+    this.ensureSingleOpenWorkspacePanel();
   },
 
   destroyed() {
@@ -423,9 +424,48 @@ const PaperReader = {
   },
 
   handleReaderClick(event) {
+    this.handleWorkspacePanelClick(event);
     if (this.focusSavedSelectionFromControl(event)) return;
     if (this.applyReaderStyleFromControl(event)) return;
     this.navigateToPaperSection(event);
+  },
+
+  handleWorkspacePanelClick(event) {
+    const summary = event.target.closest("summary");
+    const panel = summary?.parentElement;
+
+    if (!panel?.matches?.("[data-paper-workspace-panel]")) return;
+
+    window.setTimeout(() => {
+      if (panel.open) this.openWorkspacePanel(panel);
+    }, 0);
+  },
+
+  workspacePanels() {
+    return Array.from(this.el.querySelectorAll("[data-paper-workspace-panel]"));
+  },
+
+  openWorkspacePanel(panelOrId) {
+    const panel =
+      typeof panelOrId === "string"
+        ? this.el.querySelector(`#${cssEscape(panelOrId)}`)
+        : panelOrId;
+
+    if (!panel) return;
+
+    for (const other of this.workspacePanels()) {
+      if (other !== panel) other.open = false;
+    }
+
+    panel.open = true;
+  },
+
+  ensureSingleOpenWorkspacePanel() {
+    const openPanels = this.workspacePanels().filter((panel) => panel.open);
+
+    for (const panel of openPanels.slice(1)) {
+      panel.open = false;
+    }
   },
 
   focusSavedSelectionFromControl(event) {
@@ -443,17 +483,10 @@ const PaperReader = {
   },
 
   focusSavedSelection({ selectionId, sectionId, blockId, selectedText }) {
+    this.openWorkspacePanel("paper-workspace-ai");
+
     const escapedBlockId = cssEscape(blockId);
     const escapedSectionId = cssEscape(sectionId);
-
-    const target =
-      this.compiledShadowRoot?.querySelector(
-        `[data-paper-block-id="${escapedBlockId}"], [data-paper-section-id="${escapedSectionId}"]`,
-      ) ||
-      document.getElementById(`paper-section-${sectionId}`) ||
-      document.getElementById(sectionId);
-
-    target?.scrollIntoView({ behavior: "smooth", block: "center" });
 
     const highlighted = this.compiledShadowRoot?.querySelector(
       selectionId
@@ -461,8 +494,29 @@ const PaperReader = {
         : `[data-paper-saved-term][data-paper-selection-text="${cssEscape(selectedText)}"]`,
     );
 
+    const target =
+      highlighted ||
+      this.compiledShadowRoot?.querySelector(
+        `[data-paper-block-id="${escapedBlockId}"], [data-paper-section-id="${escapedSectionId}"]`,
+      ) ||
+      document.getElementById(`paper-section-${sectionId}`) ||
+      document.getElementById(sectionId);
+
+    this.scrollSavedSelectionIntoView(target);
+
     highlighted?.classList.add("is-active");
     window.setTimeout(() => highlighted?.classList.remove("is-active"), 1400);
+  },
+
+  scrollSavedSelectionIntoView(target) {
+    if (!target) return;
+
+    const scroll = (behavior = "smooth") =>
+      target.scrollIntoView({ behavior, block: "center", inline: "nearest" });
+
+    scroll();
+    window.setTimeout(() => scroll("auto"), 120);
+    window.setTimeout(() => scroll("auto"), 320);
   },
 
   applyReaderStyleFromControl(event) {
@@ -571,6 +625,8 @@ const PaperReader = {
   },
 
   showSelectionPanel({ text, blockId, sectionId, commit = false }) {
+    this.openWorkspacePanel("paper-workspace-ai");
+
     const empty = this.el.querySelector("[data-paper-selection-empty]");
     const result = this.el.querySelector("[data-paper-selection-result]");
     const textTarget = this.el.querySelector("[data-paper-selection-text]");

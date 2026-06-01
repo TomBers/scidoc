@@ -16,7 +16,8 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
              "#paper-compiled-root[data-paper-compiled-root][phx-update='ignore']"
            )
 
-    assert has_element?(view, ".paper-panel-toolbar")
+    assert has_element?(view, "#paper-workspace-ai[data-paper-workspace-panel]")
+    assert has_element?(view, "[data-paper-workspace-panel]", "Q&A")
     assert has_element?(view, "a.paper-package-export-link[href='/papers/attention/export']")
     assert has_element?(view, "[data-paper-style-kind='theme']")
     assert has_element?(view, "[data-paper-style-kind='font']")
@@ -30,8 +31,8 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
 
     html = render(view)
     assert html =~ "Attention Is All You Need"
-    assert html =~ "Public Q&amp;A"
-    assert html =~ "Ask about a selection"
+    assert html =~ "Q&amp;A"
+    assert html =~ "Ask about this selection"
     assert html =~ "/generated_papers/attention/ms.html"
     refute html =~ "LaTeX.js renderer"
     refute html =~ "document-scene"

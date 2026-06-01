@@ -173,18 +173,22 @@ defmodule SciencecriticWeb.PaperReaderLive do
             class="paper-reader-rail semantic-argument-panel"
             aria-label="Semantic paper workspace"
           >
-            <section
+            <details
               id="paper-workspace-ai"
-              class="paper-ai-history-panel"
+              class="paper-workspace-section paper-ai-history-panel"
               aria-labelledby="context-heading"
+              data-paper-workspace-panel
+              open={not is_nil(@selected_selection)}
             >
-              <div class="paper-panel-toolbar">
-                <div>
-                  <p class="paper-reader-kicker">Public Q&A</p>
-                  <h2 id="context-heading">Ask about a selection</h2>
-                </div>
-                <span>{saved_question_count(@saved_selections)} shared</span>
-              </div>
+              <summary>
+                <span class="paper-workspace-summary-main">
+                  <span class="paper-workspace-icon">
+                    <.icon name="hero-chat-bubble-left-right" class="size-4" />
+                  </span>
+                  <span id="context-heading" class="paper-workspace-label">Q&A</span>
+                </span>
+                <small>{saved_question_count(@saved_selections)} shared</small>
+              </summary>
 
               <section
                 id="paper-workspace-selection"
@@ -373,21 +377,28 @@ defmodule SciencecriticWeb.PaperReaderLive do
                   </button>
                 </div>
               </details>
-            </section>
+            </details>
 
-            <details class="paper-workspace-section paper-panel-disclosure" open>
+            <details
+              class="paper-workspace-section paper-panel-disclosure"
+              data-paper-workspace-panel
+            >
               <summary>
-                <span>Document map</span>
+                <span class="paper-workspace-summary-main">
+                  <span class="paper-workspace-icon">
+                    <.icon name="hero-map" class="size-4" />
+                  </span>
+                  <span class="paper-workspace-label">Document map</span>
+                </span>
                 <small>{@stats.sections} sections</small>
               </summary>
               <div class="semantic-section-dropdowns" id="paper-section-navigator">
                 <details
-                  :for={{group, index} <- Enum.with_index(@outline_groups)}
+                  :for={group <- @outline_groups}
                   class={[
                     "semantic-section-dropdown",
                     group.children == [] && "is-leaf"
                   ]}
-                  open={index == 0}
                 >
                   <summary>
                     <a
@@ -415,10 +426,15 @@ defmodule SciencecriticWeb.PaperReaderLive do
             <details
               id="paper-workspace-view"
               class="paper-workspace-section paper-view-controls"
-              open
+              data-paper-workspace-panel
             >
               <summary>
-                <span id="readability-heading">View</span>
+                <span class="paper-workspace-summary-main">
+                  <span class="paper-workspace-icon">
+                    <.icon name="hero-adjustments-horizontal" class="size-4" />
+                  </span>
+                  <span id="readability-heading" class="paper-workspace-label">View</span>
+                </span>
                 <small>Display</small>
               </summary>
               <div class="paper-reading-controls" aria-label="Reader display controls">
@@ -496,9 +512,14 @@ defmodule SciencecriticWeb.PaperReaderLive do
               </div>
             </details>
 
-            <details class="paper-workspace-section paper-package-panel">
+            <details class="paper-workspace-section paper-package-panel" data-paper-workspace-panel>
               <summary>
-                <span>Package</span>
+                <span class="paper-workspace-summary-main">
+                  <span class="paper-workspace-icon">
+                    <.icon name="hero-archive-box" class="size-4" />
+                  </span>
+                  <span class="paper-workspace-label">Package</span>
+                </span>
                 <small>Export</small>
               </summary>
               <div class="paper-workspace-intro semantic-paper-header">
