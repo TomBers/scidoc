@@ -13,6 +13,8 @@ const PaperReader = {
         0,
       );
     this.handleClick = (event) => this.handleReaderClick(event);
+    this.handleCompiledClick = (event) =>
+      this.navigateCompiledInternalLink(event);
 
     document.addEventListener("selectionchange", this.handleSelectionChange);
     this.el.addEventListener("mouseup", this.handleSelectionEnd);
@@ -32,6 +34,7 @@ const PaperReader = {
     this.el.removeEventListener("mouseup", this.handleSelectionEnd);
     this.el.removeEventListener("keyup", this.handleSelectionEnd);
     this.el.removeEventListener("click", this.handleClick);
+    this.compiledShadowRoot?.removeEventListener("click", this.handleCompiledClick);
   },
 
   activeSelectionDocument() {
@@ -87,6 +90,7 @@ const PaperReader = {
       this.decorateCompiledBlockSections(wrapper);
 
       shadow.replaceChildren(style, wrapper);
+      shadow.addEventListener("click", this.handleCompiledClick);
       this.applyReaderStyle();
       this.decorateSavedAnnotations();
     } catch (error) {
@@ -152,6 +156,16 @@ const PaperReader = {
         color: #ffffff;
         background: #2563eb;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+      }
+
+      .is-paper-anchor-target {
+        border-radius: 0.35rem;
+        outline: 3px solid rgba(37, 99, 235, 0.18);
+        outline-offset: 0.25rem;
+        background: rgba(219, 234, 254, 0.45);
+        transition:
+          background 180ms ease,
+          outline-color 180ms ease;
       }
 
       ${css}
@@ -421,6 +435,51 @@ const PaperReader = {
     if (link.closest("summary")) {
       link.closest("details")?.setAttribute("open", "");
     }
+  },
+
+  navigateCompiledInternalLink(event) {
+    const link = event.target.closest?.("a[href]");
+    if (!link || link.getRootNode() !== this.compiledShadowRoot) return;
+
+    const href = link.getAttribute("href") || "";
+    if (!href.startsWith("#") || href.length <= 1) return;
+
+    const target = this.compiledShadowRoot.querySelector(
+      `#${cssEscape(decodeURIComponent(href.slice(1)))}`,
+    );
+
+    if (!target) return;
+
+    event.preventDefault();
+
+    const scrollTarget = this.compiledAnchorScrollTarget(target);
+    this.scrollCompiledAnchorIntoView(scrollTarget);
+    this.highlightCompiledAnchorTarget(scrollTarget);
+  },
+
+  scrollCompiledAnchorIntoView(target) {
+    const scroll = (behavior = "smooth") =>
+      target.scrollIntoView({ behavior, block: "center", inline: "nearest" });
+
+    scroll();
+    window.setTimeout(() => scroll("auto"), 160);
+    window.setTimeout(() => scroll("auto"), 420);
+  },
+
+  compiledAnchorScrollTarget(target) {
+    return (
+      target.closest(
+        ".bibitem, figure, table, .sectionHead, .subsectionHead, .subsubsectionHead, .likesectionHead, p",
+      ) || target
+    );
+  },
+
+  highlightCompiledAnchorTarget(target) {
+    target.classList.add("is-paper-anchor-target");
+    window.setTimeout(
+      () => target.classList.remove("is-paper-anchor-target"),
+      1600,
+    );
   },
 
   handleReaderClick(event) {
