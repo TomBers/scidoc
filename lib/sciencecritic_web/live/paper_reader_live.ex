@@ -2,6 +2,7 @@ defmodule SciencecriticWeb.PaperReaderLive do
   use SciencecriticWeb, :live_view
 
   alias Sciencecritic.PaperQA
+  alias Sciencecritic.PaperQA.Selection
   alias Sciencecritic.Papers.LatexParser
 
   @impl true
@@ -23,7 +24,7 @@ defmodule SciencecriticWeb.PaperReaderLive do
             stats: paper_stats(paper),
             compiled_available?: File.exists?(compiled_path),
             parse_error: nil,
-            saved_selections: PaperQA.list_paper_selections(paper.id),
+            saved_selections: PaperQA.list_paper_question_selections(paper.id),
             selected_selection: nil,
             selection_questions: [],
             question_form: to_form(%{"question" => ""}, as: :qa),
@@ -52,35 +53,10 @@ defmodule SciencecriticWeb.PaperReaderLive do
 
   @impl true
   def handle_event("paper_selection_captured", params, socket) do
-    attrs = %{
-      "paper_id" => socket.assigns.paper.id,
-      "section_id" => params["section_id"],
-      "block_id" => params["block_id"],
-      "selected_text" => params["selected_text"]
-    }
+    attrs = paper_selection_attrs(socket, params)
 
-    case PaperQA.get_or_create_selection(attrs) do
-      {:ok, selection} ->
-        {:noreply,
-         socket
-         |> assign(:selected_selection, selection)
-         |> assign(:selection_questions, PaperQA.list_selection_questions(selection.id))
-         |> assign(:saved_selections, PaperQA.list_paper_selections(socket.assigns.paper.id))
-         |> assign(:question_form, to_form(%{"question" => ""}, as: :qa))
-         |> assign(:follow_up_form, to_form(%{"question" => ""}, as: :follow_up))
-         |> assign(:qa_error, nil)}
-
-      {:error, changeset} ->
-        {:noreply,
-         assign(socket, :qa_error, "Could not save selection: #{inspect(changeset.errors)}")}
-    end
-  end
-
-  def handle_event("select_saved_selection", %{"id" => selection_id}, socket) do
-    case Integer.parse(selection_id) do
-      {selection_id, ""} ->
-        selection = PaperQA.get_selection_with_questions(selection_id)
-
+    case PaperQA.get_selection_by_attrs(attrs) do
+      %Selection{} = selection ->
         {:noreply,
          socket
          |> assign(:selected_selection, selection)
@@ -89,18 +65,48 @@ defmodule SciencecriticWeb.PaperReaderLive do
          |> assign(:follow_up_form, to_form(%{"question" => ""}, as: :follow_up))
          |> assign(:qa_error, nil)}
 
+      nil ->
+        {:noreply,
+         socket
+         |> assign(:selected_selection, transient_selection(attrs))
+         |> assign(:selection_questions, [])
+         |> assign(:question_form, to_form(%{"question" => ""}, as: :qa))
+         |> assign(:follow_up_form, to_form(%{"question" => ""}, as: :follow_up))
+         |> assign(:qa_error, nil)}
+    end
+  end
+
+  def handle_event("select_saved_selection", %{"id" => selection_id}, socket) do
+    case Integer.parse(selection_id) do
+      {selection_id, ""} ->
+        case PaperQA.get_selection_with_questions(selection_id) do
+          %Selection{} = selection ->
+            {:noreply,
+             socket
+             |> assign(:selected_selection, selection)
+             |> assign(:selection_questions, selection.questions)
+             |> assign(:question_form, to_form(%{"question" => ""}, as: :qa))
+             |> assign(:follow_up_form, to_form(%{"question" => ""}, as: :follow_up))
+             |> assign(:qa_error, nil)}
+
+          nil ->
+            {:noreply, assign(socket, :qa_error, "That shared question is no longer available.")}
+        end
+
       _ ->
         {:noreply, assign(socket, :qa_error, "Could not identify the saved question.")}
     end
   end
 
-  def handle_event("ask_selection_question", %{"qa" => %{"question" => question}}, socket) do
-    with selection when not is_nil(selection) <- socket.assigns.selected_selection,
-         question when question != "" <- String.trim(question),
-         {:ok, _question} <- PaperQA.create_question(selection, question) do
-      {:noreply, refresh_selection_questions(socket)}
+  def handle_event("ask_selection_question", %{"qa" => params}, socket) do
+    question = params |> Map.get("question", "") |> String.trim()
+
+    with question when question != "" <- question,
+         {:ok, selection_or_attrs} <- selection_for_question(socket, params),
+         {:ok, question_record} <- PaperQA.create_question(selection_or_attrs, question) do
+      {:noreply, refresh_selection_questions(socket, question_record.paper_selection_id)}
     else
-      nil ->
+      {:error, :missing_selection} ->
         {:noreply, assign(socket, :qa_error, "Select a passage before asking a question.")}
 
       "" ->
@@ -116,15 +122,20 @@ defmodule SciencecriticWeb.PaperReaderLive do
         %{"follow_up" => %{"question" => question, "parent_question_id" => parent_question_id}},
         socket
       ) do
-    with selection when not is_nil(selection) <- socket.assigns.selected_selection,
+    with %Selection{id: selection_id} = selection when not is_nil(selection_id) <-
+           socket.assigns.selected_selection,
          question when question != "" <- String.trim(question),
          {parent_question_id, ""} <- Integer.parse(parent_question_id),
          {:ok, _question} <-
            PaperQA.create_question(selection, question, parent_question_id: parent_question_id) do
-      {:noreply, refresh_selection_questions(socket)}
+      {:noreply, refresh_selection_questions(socket, selection_id)}
     else
       nil ->
         {:noreply, assign(socket, :qa_error, "Select a passage before asking a follow-up.")}
+
+      %Selection{} ->
+        {:noreply,
+         assign(socket, :qa_error, "Ask an initial question before adding a follow-up.")}
 
       "" ->
         {:noreply, assign(socket, :qa_error, "Follow-up question cannot be blank.")}
@@ -159,185 +170,235 @@ defmodule SciencecriticWeb.PaperReaderLive do
           </div>
         <% else %>
           <aside
-            class="paper-selection-panel semantic-argument-panel"
+            class="paper-reader-rail semantic-argument-panel"
             aria-label="Semantic paper workspace"
           >
-            <div class="paper-panel-toolbar">
-              <div>
-                <p class="paper-reader-kicker">Workspace</p>
-                <h2>Ask the paper</h2>
-              </div>
-              <.link href={~p"/papers/attention/export"} class="paper-package-export-link">
-                <.icon name="hero-arrow-down-tray" class="size-4" /> Export
-              </.link>
-            </div>
-
-            <section
-              class="paper-workspace-section paper-selection-panel-inner paper-primary-workflow"
+            <details
+              id="paper-workspace-ai"
+              class="paper-workspace-section paper-ai-history-panel"
               aria-labelledby="context-heading"
+              data-paper-workspace-panel
+              open={not is_nil(@selected_selection)}
             >
-              <div class="paper-workspace-section-heading">
-                <div>
-                  <h3 id="context-heading">Selection</h3>
-                </div>
-              </div>
-              <p
-                class="paper-selection-empty"
-                data-paper-selection-empty
-                hidden={not is_nil(@selected_selection)}
-              >
-                Select text in the paper to ask a grounded question.
-              </p>
-              <div
-                class="paper-selection-result"
-                data-paper-selection-result
-                hidden={is_nil(@selected_selection)}
-              >
-                <div class="paper-selection-summary" data-paper-capture-node>
-                  <blockquote data-paper-selection-text>
-                    {if @selected_selection, do: @selected_selection.selected_text, else: ""}
-                  </blockquote>
-                  <dl>
-                    <div>
-                      <dt>Section</dt>
-                      <dd data-paper-selection-section>
-                        {if @selected_selection,
-                          do: @selected_selection.section_id,
-                          else: "unknown section"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Block</dt>
-                      <dd data-paper-selection-block>
-                        {if @selected_selection,
-                          do: @selected_selection.block_id,
-                          else: "unknown block"}
-                      </dd>
-                    </div>
-                  </dl>
-                  <p class="paper-selection-meta" data-paper-selection-meta>
-                    {selection_meta(@selected_selection)}
-                  </p>
-                  <span class="sr-only" data-paper-selection-term>
-                    {if @selected_selection,
-                      do: @selected_selection.selected_text,
-                      else: "Selected passage"}
+              <summary>
+                <span class="paper-workspace-summary-main">
+                  <span class="paper-workspace-icon">
+                    <.icon name="hero-chat-bubble-left-right" class="size-4" />
                   </span>
-                </div>
+                  <span id="context-heading" class="paper-workspace-label">Q&A</span>
+                </span>
+                <small>{saved_question_count(@saved_selections)} shared</small>
+              </summary>
 
-                <.form
-                  for={@question_form}
-                  id="paper-selection-question-form"
-                  phx-submit="ask_selection_question"
-                  class="paper-question-form"
+              <section
+                id="paper-workspace-selection"
+                class="paper-selection-panel paper-primary-workflow"
+                aria-label="Ask AI"
+              >
+                <p
+                  class="paper-selection-empty"
+                  data-paper-selection-empty
+                  hidden={not is_nil(@selected_selection)}
                 >
-                  <.input
-                    field={@question_form[:question]}
-                    type="textarea"
-                    rows="3"
-                    label="Ask about this selection"
-                    placeholder="What does this mean in the paper?"
-                    class="paper-question-input"
-                  />
-                  <button type="submit" phx-disable-with="Asking...">
-                    <.icon name="hero-paper-airplane" class="size-4" /> Ask and save
-                  </button>
-                </.form>
-
-                <p :if={@qa_error} class="paper-question-error">{@qa_error}</p>
-              </div>
-
-              <span class="sr-only" data-paper-graph-source>
-                {if @selected_selection,
-                  do: @selected_selection.section_id,
-                  else: "Attention Is All You Need"}
-              </span>
-              <span class="sr-only" data-paper-graph-question>
-                {selection_question_prompt(@selected_selection)}
-              </span>
-
-              <div :if={@selection_questions != []} class="paper-question-thread">
-                <article :for={question <- @selection_questions} id={"paper-question-#{question.id}"}>
-                  <header>
-                    <span>{question.status}</span>
-                    <strong>Q</strong>
-                  </header>
-                  <p>{question.question}</p>
-                  <div class={["paper-question-answer", question.status == "failed" && "is-error"]}>
-                    {question.answer || question.error || "Waiting for an answer..."}
+                  Select text in the paper to ask a grounded question. Answers are added to the shared demo history.
+                </p>
+                <div
+                  class="paper-selection-result"
+                  data-paper-selection-result
+                  hidden={is_nil(@selected_selection)}
+                >
+                  <div class="paper-selection-summary" data-paper-capture-node>
+                    <blockquote data-paper-selection-text>
+                      {if @selected_selection, do: @selected_selection.selected_text, else: ""}
+                    </blockquote>
+                    <dl>
+                      <div>
+                        <dt>Section</dt>
+                        <dd data-paper-selection-section>
+                          {if @selected_selection,
+                            do: section_label(@selected_selection.section_id),
+                            else: "unknown section"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Block</dt>
+                        <dd data-paper-selection-block>
+                          {if @selected_selection,
+                            do: @selected_selection.block_id,
+                            else: "unknown block"}
+                        </dd>
+                      </div>
+                    </dl>
+                    <p class="paper-selection-meta" data-paper-selection-meta>
+                      {selection_meta(@selected_selection)}
+                    </p>
+                    <span class="sr-only" data-paper-selection-term>
+                      {if @selected_selection,
+                        do: @selected_selection.selected_text,
+                        else: "Selected passage"}
+                    </span>
                   </div>
+
                   <.form
-                    for={@follow_up_form}
-                    id={"paper-follow-up-form-#{question.id}"}
-                    phx-submit="ask_follow_up_question"
-                    class="paper-follow-up-form"
+                    for={@question_form}
+                    id="paper-selection-question-form"
+                    phx-submit="ask_selection_question"
+                    class="paper-question-form"
                   >
-                    <input type="hidden" name="follow_up[parent_question_id]" value={question.id} />
-                    <.input
-                      id={"paper-follow-up-question-#{question.id}"}
-                      field={@follow_up_form[:question]}
-                      type="text"
-                      placeholder="Ask a follow-up"
-                      class="paper-follow-up-input"
+                    <input
+                      type="hidden"
+                      name="qa[selected_text]"
+                      value={if @selected_selection, do: @selected_selection.selected_text, else: ""}
+                      data-paper-selection-input="selected_text"
                     />
-                    <button type="submit" aria-label="Ask follow-up" phx-disable-with="Asking...">
-                      <.icon name="hero-arrow-right" class="size-4" />
+                    <input
+                      type="hidden"
+                      name="qa[section_id]"
+                      value={if @selected_selection, do: @selected_selection.section_id, else: ""}
+                      data-paper-selection-input="section_id"
+                    />
+                    <input
+                      type="hidden"
+                      name="qa[block_id]"
+                      value={if @selected_selection, do: @selected_selection.block_id, else: ""}
+                      data-paper-selection-input="block_id"
+                    />
+                    <.input
+                      field={@question_form[:question]}
+                      type="textarea"
+                      rows="3"
+                      label="Ask about this selection"
+                      placeholder="What does this mean in the paper?"
+                      class="paper-question-input"
+                    />
+                    <button type="submit" phx-disable-with="Asking...">
+                      <.icon name="hero-paper-airplane" class="size-4" /> Ask and save
                     </button>
                   </.form>
-                </article>
-              </div>
-            </section>
 
-            <section
-              class="paper-workspace-section paper-saved-questions paper-secondary-workflow"
-              aria-labelledby="saved-questions-heading"
-            >
-              <div class="paper-workspace-section-heading">
-                <div>
-                  <h3 id="saved-questions-heading">History</h3>
+                  <p :if={@qa_error} class="paper-question-error">{@qa_error}</p>
                 </div>
-                <span>{saved_question_count(@saved_selections)} saved</span>
-              </div>
 
-              <p :if={saved_question_count(@saved_selections) == 0} class="paper-selection-empty">
-                Saved questions will appear here when you ask about selected terms.
-              </p>
+                <span class="sr-only" data-paper-graph-source>
+                  {if @selected_selection,
+                    do: @selected_selection.section_id,
+                    else: "Attention Is All You Need"}
+                </span>
+                <span class="sr-only" data-paper-graph-question>
+                  {selection_question_prompt(@selected_selection)}
+                </span>
+              </section>
 
-              <div :if={saved_question_count(@saved_selections) > 0} class="paper-saved-question-list">
-                <button
-                  :for={selection <- @saved_selections}
-                  :if={selection.questions != []}
-                  type="button"
-                  phx-click="select_saved_selection"
-                  phx-value-id={selection.id}
-                  data-paper-saved-selection-link
-                  data-paper-selection-id={selection.id}
-                  data-paper-selection-text={selection.selected_text}
-                  data-paper-selection-section={selection.section_id}
-                  data-paper-selection-block={selection.block_id}
+              <details
+                id="paper-workspace-answers"
+                class="paper-workspace-section paper-question-thread-section"
+                open={@selection_questions != []}
+              >
+                <summary>
+                  <span>Answers</span>
+                  <small>{length(@selection_questions)} active</small>
+                </summary>
+                <div :if={@selection_questions != []} class="paper-question-thread">
+                  <article
+                    :for={question <- @selection_questions}
+                    id={"paper-question-#{question.id}"}
+                  >
+                    <header>
+                      <span>{question.status}</span>
+                      <strong>Q</strong>
+                    </header>
+                    <p>{question.question}</p>
+                    <div class={["paper-question-answer", question.status == "failed" && "is-error"]}>
+                      {question.answer || question.error || "Waiting for an answer..."}
+                    </div>
+                    <.form
+                      for={@follow_up_form}
+                      id={"paper-follow-up-form-#{question.id}"}
+                      phx-submit="ask_follow_up_question"
+                      class="paper-follow-up-form"
+                    >
+                      <input type="hidden" name="follow_up[parent_question_id]" value={question.id} />
+                      <.input
+                        id={"paper-follow-up-question-#{question.id}"}
+                        field={@follow_up_form[:question]}
+                        type="text"
+                        placeholder="Ask a follow-up"
+                        class="paper-follow-up-input"
+                      />
+                      <button type="submit" aria-label="Ask follow-up" phx-disable-with="Asking...">
+                        <.icon name="hero-arrow-right" class="size-4" />
+                      </button>
+                    </.form>
+                  </article>
+                </div>
+                <p :if={@selection_questions == []} class="paper-selection-empty">
+                  Answers and follow-up prompts appear here after you ask about a selection.
+                </p>
+              </details>
+
+              <details
+                id="paper-workspace-history"
+                class="paper-workspace-section paper-saved-questions paper-secondary-workflow"
+                open
+              >
+                <summary>
+                  <span id="saved-questions-heading">Shared history</span>
+                  <small>{saved_question_count(@saved_selections)} public</small>
+                </summary>
+
+                <p :if={saved_question_count(@saved_selections) == 0} class="paper-selection-empty">
+                  Shared questions will appear here when readers ask about selected passages.
+                </p>
+
+                <div
+                  :if={saved_question_count(@saved_selections) > 0}
+                  class="paper-saved-question-list"
                 >
-                  <span>{selection.section_id}</span>
-                  <strong>{selection.selected_text}</strong>
-                  <small>
-                    {length(selection.questions)} question{if(length(selection.questions) == 1,
-                      do: "",
-                      else: "s"
-                    )}
-                  </small>
-                </button>
-              </div>
-            </section>
+                  <button
+                    :for={selection <- @saved_selections}
+                    :if={selection.questions != []}
+                    type="button"
+                    phx-click="select_saved_selection"
+                    phx-value-id={selection.id}
+                    data-paper-saved-selection-link
+                    data-paper-selection-id={selection.id}
+                    data-paper-selection-text={selection.selected_text}
+                    data-paper-selection-section={selection.section_id}
+                    data-paper-selection-block={selection.block_id}
+                  >
+                    <span>{section_label(selection.section_id)}</span>
+                    <strong>{selection.selected_text}</strong>
+                    <small>
+                      {length(selection.questions)} question{if(length(selection.questions) == 1,
+                        do: "",
+                        else: "s"
+                      )}
+                    </small>
+                  </button>
+                </div>
+              </details>
+            </details>
 
-            <details class="paper-workspace-section paper-panel-disclosure">
+            <details
+              class="paper-workspace-section paper-panel-disclosure"
+              data-paper-workspace-panel
+            >
               <summary>
-                <span>Document map</span>
+                <span class="paper-workspace-summary-main">
+                  <span class="paper-workspace-icon">
+                    <.icon name="hero-map" class="size-4" />
+                  </span>
+                  <span class="paper-workspace-label">Document map</span>
+                </span>
                 <small>{@stats.sections} sections</small>
               </summary>
               <div class="semantic-section-dropdowns" id="paper-section-navigator">
                 <details
-                  :for={{group, index} <- Enum.with_index(@outline_groups)}
-                  class="semantic-section-dropdown"
-                  open={index == 0}
+                  :for={group <- @outline_groups}
+                  class={[
+                    "semantic-section-dropdown",
+                    group.children == [] && "is-leaf"
+                  ]}
                 >
                   <summary>
                     <a
@@ -347,28 +408,35 @@ defmodule SciencecriticWeb.PaperReaderLive do
                       <span>{group.section.number}</span>
                       {group.section.title}
                     </a>
-                    <small>{length(group.section.blocks)} blocks</small>
+                    <small>{block_count_label(outline_group_block_count(group))}</small>
                   </summary>
-                  <ol>
+                  <ol :if={group.children != []}>
                     <li :for={child <- group.children}>
                       <a href={"#paper-section-#{child.id}"} data-paper-nav-target={child.id}>
                         <span>{child.number}</span>
                         {child.title}
                       </a>
-                      <small>{length(child.blocks)}</small>
+                      <small>{block_count_label(length(child.blocks))}</small>
                     </li>
                   </ol>
                 </details>
               </div>
             </details>
 
-            <section
+            <details
+              id="paper-workspace-view"
               class="paper-workspace-section paper-view-controls"
-              aria-labelledby="readability-heading"
+              data-paper-workspace-panel
             >
-              <div class="paper-workspace-section-heading">
-                <h3 id="readability-heading">View</h3>
-              </div>
+              <summary>
+                <span class="paper-workspace-summary-main">
+                  <span class="paper-workspace-icon">
+                    <.icon name="hero-adjustments-horizontal" class="size-4" />
+                  </span>
+                  <span id="readability-heading" class="paper-workspace-label">View</span>
+                </span>
+                <small>Display</small>
+              </summary>
               <div class="paper-reading-controls" aria-label="Reader display controls">
                 <div class="paper-reading-control-group">
                   <span>Theme</span>
@@ -442,24 +510,36 @@ defmodule SciencecriticWeb.PaperReaderLive do
                   </div>
                 </div>
               </div>
-            </section>
+            </details>
+
+            <details class="paper-workspace-section paper-package-panel" data-paper-workspace-panel>
+              <summary>
+                <span class="paper-workspace-summary-main">
+                  <span class="paper-workspace-icon">
+                    <.icon name="hero-archive-box" class="size-4" />
+                  </span>
+                  <span class="paper-workspace-label">Package</span>
+                </span>
+                <small>Export</small>
+              </summary>
+              <div class="paper-workspace-intro semantic-paper-header">
+                <p class="paper-reader-kicker">Demo export</p>
+                <p>
+                  Download the rendered paper with its semantic AST and shared Q&A anchors.
+                </p>
+                <div class="semantic-source-strip" aria-label="Document pipeline">
+                  <span>Rendered HTML</span>
+                  <span>Semantic AST</span>
+                  <span>Q&A context</span>
+                </div>
+                <.link href={~p"/papers/attention/export"} class="paper-package-export-link">
+                  <.icon name="hero-arrow-down-tray" class="size-4" /> Export package
+                </.link>
+              </div>
+            </details>
           </aside>
 
           <article class="paper-document semantic-paper-document" data-paper-id={@paper.id}>
-            <header class="paper-document-header semantic-paper-header">
-              <p class="paper-reader-kicker">Semantic scientific document demo</p>
-              <h1>{@paper.title}</h1>
-              <p>
-                A working argument that scientific papers should ship as semantic document graphs with high-quality renderings. The visible paper below is generated by real TeX4ht; the inspector is backed by a simplified AST parsed from the same TeX source.
-              </p>
-              <div class="semantic-source-strip" aria-label="Document pipeline">
-                <span>TeX source</span>
-                <span>TeX4ht HTML</span>
-                <span>Semantic AST</span>
-                <span>Selectable clarification context</span>
-              </div>
-            </header>
-
             <%= if @compiled_available? do %>
               <div
                 id="paper-compiled-root"
@@ -477,21 +557,6 @@ defmodule SciencecriticWeb.PaperReaderLive do
               </div>
               <.semantic_fallback paper={@paper} />
             <% end %>
-
-            <section class="semantic-outline" aria-label="Semantic paper outline">
-              <div>
-                <p class="paper-reader-kicker">Semantic graph outline</p>
-                <h2>Stable sections from the source document</h2>
-              </div>
-              <ol>
-                <li :for={section <- @paper.sections}>
-                  <a href={"#paper-section-#{section.id}"} data-paper-nav-target={section.id}>
-                    {section.title}
-                  </a>
-                  <span>{length(section.blocks)} blocks</span>
-                </li>
-              </ol>
-            </section>
           </article>
         <% end %>
       </section>
@@ -610,16 +675,73 @@ defmodule SciencecriticWeb.PaperReaderLive do
     end)
   end
 
-  defp refresh_selection_questions(socket) do
-    selection = PaperQA.get_selection_with_questions(socket.assigns.selected_selection.id)
+  defp outline_group_block_count(group) do
+    length(group.section.blocks) +
+      (group.children
+       |> Enum.map(&length(&1.blocks))
+       |> Enum.sum())
+  end
+
+  defp block_count_label(1), do: "1 block"
+  defp block_count_label(count), do: "#{count} blocks"
+
+  defp refresh_selection_questions(socket, selection_id) do
+    selection = PaperQA.get_selection_with_questions(selection_id)
 
     socket
     |> assign(:selected_selection, selection)
     |> assign(:selection_questions, selection.questions)
-    |> assign(:saved_selections, PaperQA.list_paper_selections(socket.assigns.paper.id))
+    |> assign(:saved_selections, PaperQA.list_paper_question_selections(socket.assigns.paper.id))
     |> assign(:question_form, to_form(%{"question" => ""}, as: :qa))
     |> assign(:follow_up_form, to_form(%{"question" => ""}, as: :follow_up))
     |> assign(:qa_error, nil)
+  end
+
+  defp selection_for_question(socket, params) do
+    case socket.assigns.selected_selection do
+      %Selection{id: id} = selection when not is_nil(id) ->
+        {:ok, selection}
+
+      %Selection{} = selection ->
+        {:ok, selection_attrs_from_selection(selection)}
+
+      _ ->
+        attrs = paper_selection_attrs(socket, params)
+
+        if attrs.selected_text == "" do
+          {:error, :missing_selection}
+        else
+          {:ok, attrs}
+        end
+    end
+  end
+
+  defp paper_selection_attrs(socket, attrs) do
+    PaperQA.selection_attrs(%{
+      "paper_id" => socket.assigns.paper.id,
+      "section_id" => attrs["section_id"],
+      "block_id" => attrs["block_id"],
+      "selected_text" => attrs["selected_text"]
+    })
+  end
+
+  defp selection_attrs_from_selection(selection) do
+    PaperQA.selection_attrs(%{
+      paper_id: selection.paper_id,
+      section_id: selection.section_id,
+      block_id: selection.block_id,
+      selected_text: selection.selected_text
+    })
+  end
+
+  defp transient_selection(attrs) do
+    %Selection{
+      paper_id: attrs.paper_id,
+      section_id: attrs.section_id,
+      block_id: attrs.block_id,
+      selected_text: attrs.selected_text,
+      text_hash: attrs.text_hash
+    }
   end
 
   defp saved_question_count(selections) do
@@ -631,7 +753,19 @@ defmodule SciencecriticWeb.PaperReaderLive do
   defp selection_meta(nil), do: ""
 
   defp selection_meta(selection) do
-    "#{selection.section_id} · #{selection.block_id} · #{String.length(selection.selected_text)} characters selected"
+    "#{section_label(selection.section_id)} · #{selection.block_id} · #{String.length(selection.selected_text)} characters selected"
+  end
+
+  defp section_label(nil), do: "Unknown section"
+  defp section_label(""), do: "Unknown section"
+  defp section_label("compiled-tex4ht"), do: "Compiled HTML"
+
+  defp section_label(section_id) do
+    section_id
+    |> String.replace("-", " ")
+    |> String.split()
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
   end
 
   defp selection_question_prompt(nil), do: "What does this term mean here?"

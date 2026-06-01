@@ -38,30 +38,36 @@ defmodule SciencecriticWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
+    <header class="border-b border-slate-200/80 bg-white/90 px-4 py-3 text-slate-950 shadow-sm shadow-slate-900/[0.03] backdrop-blur sm:px-6 lg:px-8">
+      <div class="mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-3">
+        <a href="/" class="group flex min-w-0 items-center gap-3 text-slate-950 no-underline">
+          <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-slate-950 text-sm font-black text-white transition-transform group-hover:-translate-y-0.5">
+            SC
+          </span>
+          <span class="min-w-0">
+            <span class="block text-sm font-black tracking-[0.14em] text-blue-600 uppercase">
+              ScienceCritic
+            </span>
+            <span class="block truncate text-sm font-semibold text-slate-600">
+              Semantic paper review demo
+            </span>
+          </span>
         </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
+        <nav class="flex flex-wrap items-center gap-2" aria-label="Demo navigation">
+          <.link
+            navigate={~p"/papers/attention"}
+            class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+          >
+            <.icon name="hero-document-text" class="size-4" /> Demo
+          </.link>
+          <a
+            href="https://github.com/TomBers/scidoc"
+            class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+          >
+            <.icon name="hero-code-bracket-square" class="size-4" /> Repo
+          </a>
+          <.theme_toggle />
+        </nav>
       </div>
     </header>
 

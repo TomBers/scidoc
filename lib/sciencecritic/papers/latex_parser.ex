@@ -189,8 +189,7 @@ defmodule Sciencecritic.Papers.LatexParser do
 
     sections
     |> Enum.reverse()
-    |> Enum.with_index(1)
-    |> Enum.map(fn {section, index} -> Map.put(section, :number, index) end)
+    |> number_sections()
   end
 
   defp new_section(heading, body) do
@@ -217,6 +216,40 @@ defmodule Sciencecritic.Papers.LatexParser do
   defp heading_level("section"), do: 1
   defp heading_level("subsection"), do: 2
   defp heading_level("subsubsection"), do: 3
+
+  defp number_sections(sections) do
+    {numbered_sections, _counters} =
+      Enum.map_reduce(sections, {0, 0, 0}, fn section,
+                                              {section_count, subsection_count,
+                                               subsubsection_count} ->
+        case section.level do
+          1 ->
+            section_count = section_count + 1
+
+            {Map.put(section, :number, Integer.to_string(section_count)), {section_count, 0, 0}}
+
+          2 ->
+            section_count = max(section_count, 1)
+            subsection_count = subsection_count + 1
+
+            {Map.put(section, :number, "#{section_count}.#{subsection_count}"),
+             {section_count, subsection_count, 0}}
+
+          3 ->
+            section_count = max(section_count, 1)
+            subsection_count = max(subsection_count, 1)
+            subsubsection_count = subsubsection_count + 1
+
+            {Map.put(
+               section,
+               :number,
+               "#{section_count}.#{subsection_count}.#{subsubsection_count}"
+             ), {section_count, subsection_count, subsubsection_count}}
+        end
+      end)
+
+    numbered_sections
+  end
 
   defp parse_blocks(source, root_dir, prefix) do
     {source_with_placeholders, environment_blocks} =

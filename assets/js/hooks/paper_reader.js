@@ -3,13 +3,18 @@ const PaperReader = {
     this.compiledShadowRoot = null;
     this.lastSelectionSignature = null;
     this.handleSelectionChange = () =>
-      this.captureSelection(this.activeSelectionDocument());
+      this.captureSelection(this.activeSelectionDocument(), { commit: false });
     this.handleSelectionEnd = () =>
       window.setTimeout(
-        () => this.captureSelection(this.activeSelectionDocument()),
+        () =>
+          this.captureSelection(this.activeSelectionDocument(), {
+            commit: true,
+          }),
         0,
       );
     this.handleClick = (event) => this.handleReaderClick(event);
+    this.handleCompiledClick = (event) =>
+      this.navigateCompiledInternalLink(event);
 
     document.addEventListener("selectionchange", this.handleSelectionChange);
     this.el.addEventListener("mouseup", this.handleSelectionEnd);
@@ -21,6 +26,7 @@ const PaperReader = {
 
   updated() {
     this.decorateSavedAnnotations();
+    this.ensureSingleOpenWorkspacePanel();
   },
 
   destroyed() {
@@ -28,6 +34,7 @@ const PaperReader = {
     this.el.removeEventListener("mouseup", this.handleSelectionEnd);
     this.el.removeEventListener("keyup", this.handleSelectionEnd);
     this.el.removeEventListener("click", this.handleClick);
+    this.compiledShadowRoot?.removeEventListener("click", this.handleCompiledClick);
   },
 
   activeSelectionDocument() {
@@ -80,8 +87,10 @@ const PaperReader = {
       this.moveLeadingFloatsAfterIntroParagraph(wrapper);
       this.decorateCompiledRoot(wrapper);
       this.decorateCompiledSectionAnchors(wrapper);
+      this.decorateCompiledBlockSections(wrapper);
 
       shadow.replaceChildren(style, wrapper);
+      shadow.addEventListener("click", this.handleCompiledClick);
       this.applyReaderStyle();
       this.decorateSavedAnnotations();
     } catch (error) {
@@ -117,9 +126,6 @@ const PaperReader = {
 
       .compiled-paper-document {
         box-sizing: border-box;
-        min-height: min(86vh, 72rem);
-        max-height: calc(100vh - 2rem);
-        overflow: auto;
         border: 1px solid rgba(15, 23, 42, 0.1);
         border-radius: 1rem;
         background: #ffffff;
@@ -152,7 +158,46 @@ const PaperReader = {
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
       }
 
+      .is-paper-anchor-target {
+        border-radius: 0.35rem;
+        outline: 3px solid rgba(37, 99, 235, 0.18);
+        outline-offset: 0.25rem;
+        background: rgba(219, 234, 254, 0.45);
+        transition:
+          background 180ms ease,
+          outline-color 180ms ease;
+      }
+
       ${css}
+
+      .compiled-paper-document > .center:first-child {
+        display: none !important;
+      }
+
+      .compiled-paper-document {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .compiled-paper-document div.author,
+      .compiled-paper-document div.thanks {
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+      }
+
+      .compiled-paper-document table,
+      .compiled-paper-document div.tabular,
+      .compiled-paper-document table.align,
+      .compiled-paper-document table.align-star,
+      .compiled-paper-document table.equation,
+      .compiled-paper-document table.equation-star {
+        max-width: 100% !important;
+      }
+
+      .compiled-paper-document img {
+        max-width: 100%;
+        height: auto;
+      }
 
       :host([data-reader-font="large"]) .compiled-paper-document {
         font-size: 118%;
@@ -351,6 +396,24 @@ const PaperReader = {
     }
   },
 
+  decorateCompiledBlockSections(root) {
+    const headingSelector =
+      ".sectionHead, .subsectionHead, .subsubsectionHead, .likesectionHead, h2, h3, h4, h5";
+    let currentSectionId = root.dataset.paperSectionId || "compiled-tex4ht";
+
+    for (const element of root.querySelectorAll(
+      `[data-paper-block-id], ${headingSelector}`,
+    )) {
+      if (element.matches(headingSelector) && element.dataset.paperSectionId) {
+        currentSectionId = element.dataset.paperSectionId;
+      }
+
+      if (element.dataset.paperBlockId) {
+        element.dataset.paperSectionId = element.dataset.paperSectionId || currentSectionId;
+      }
+    }
+  },
+
   navigateToPaperSection(event) {
     const link = event.target.closest("[data-paper-nav-target]");
     if (!link || !this.el.contains(link)) return;
@@ -374,10 +437,94 @@ const PaperReader = {
     }
   },
 
+  navigateCompiledInternalLink(event) {
+    const link = event.target.closest?.("a[href]");
+    if (!link || link.getRootNode() !== this.compiledShadowRoot) return;
+
+    const href = link.getAttribute("href") || "";
+    if (!href.startsWith("#") || href.length <= 1) return;
+
+    const target = this.compiledShadowRoot.querySelector(
+      `#${cssEscape(decodeURIComponent(href.slice(1)))}`,
+    );
+
+    if (!target) return;
+
+    event.preventDefault();
+
+    const scrollTarget = this.compiledAnchorScrollTarget(target);
+    this.scrollCompiledAnchorIntoView(scrollTarget);
+    this.highlightCompiledAnchorTarget(scrollTarget);
+  },
+
+  scrollCompiledAnchorIntoView(target) {
+    const scroll = (behavior = "smooth") =>
+      target.scrollIntoView({ behavior, block: "center", inline: "nearest" });
+
+    scroll();
+    window.setTimeout(() => scroll("auto"), 160);
+    window.setTimeout(() => scroll("auto"), 420);
+  },
+
+  compiledAnchorScrollTarget(target) {
+    return (
+      target.closest(
+        ".bibitem, figure, table, .sectionHead, .subsectionHead, .subsubsectionHead, .likesectionHead, p",
+      ) || target
+    );
+  },
+
+  highlightCompiledAnchorTarget(target) {
+    target.classList.add("is-paper-anchor-target");
+    window.setTimeout(
+      () => target.classList.remove("is-paper-anchor-target"),
+      1600,
+    );
+  },
+
   handleReaderClick(event) {
+    this.handleWorkspacePanelClick(event);
     if (this.focusSavedSelectionFromControl(event)) return;
     if (this.applyReaderStyleFromControl(event)) return;
     this.navigateToPaperSection(event);
+  },
+
+  handleWorkspacePanelClick(event) {
+    const summary = event.target.closest("summary");
+    const panel = summary?.parentElement;
+
+    if (!panel?.matches?.("[data-paper-workspace-panel]")) return;
+
+    window.setTimeout(() => {
+      if (panel.open) this.openWorkspacePanel(panel);
+    }, 0);
+  },
+
+  workspacePanels() {
+    return Array.from(this.el.querySelectorAll("[data-paper-workspace-panel]"));
+  },
+
+  openWorkspacePanel(panelOrId) {
+    const panel =
+      typeof panelOrId === "string"
+        ? this.el.querySelector(`#${cssEscape(panelOrId)}`)
+        : panelOrId;
+
+    if (!panel) return;
+
+    for (const other of this.workspacePanels()) {
+      if (other !== panel) other.open = false;
+    }
+
+    panel.open = true;
+  },
+
+  ensureSingleOpenWorkspacePanel() {
+    const openPanels = this.workspacePanels().filter((panel) => panel.open);
+
+    for (const panel of openPanels.slice(1)) {
+      panel.open = false;
+    }
   },
 
   focusSavedSelectionFromControl(event) {
@@ -391,21 +538,14 @@ const PaperReader = {
 
     this.focusSavedSelection({ selectionId, sectionId, blockId, selectedText });
 
-    return false;
+    return true;
   },
 
   focusSavedSelection({ selectionId, sectionId, blockId, selectedText }) {
+    this.openWorkspacePanel("paper-workspace-ai");
+
     const escapedBlockId = cssEscape(blockId);
     const escapedSectionId = cssEscape(sectionId);
-
-    const target =
-      this.compiledShadowRoot?.querySelector(
-        `[data-paper-block-id="${escapedBlockId}"], [data-paper-section-id="${escapedSectionId}"]`,
-      ) ||
-      document.getElementById(`paper-section-${sectionId}`) ||
-      document.getElementById(sectionId);
-
-    target?.scrollIntoView({ behavior: "smooth", block: "center" });
 
     const highlighted = this.compiledShadowRoot?.querySelector(
       selectionId
@@ -413,8 +553,29 @@ const PaperReader = {
         : `[data-paper-saved-term][data-paper-selection-text="${cssEscape(selectedText)}"]`,
     );
 
+    const target =
+      highlighted ||
+      this.compiledShadowRoot?.querySelector(
+        `[data-paper-block-id="${escapedBlockId}"], [data-paper-section-id="${escapedSectionId}"]`,
+      ) ||
+      document.getElementById(`paper-section-${sectionId}`) ||
+      document.getElementById(sectionId);
+
+    this.scrollSavedSelectionIntoView(target);
+
     highlighted?.classList.add("is-active");
     window.setTimeout(() => highlighted?.classList.remove("is-active"), 1400);
+  },
+
+  scrollSavedSelectionIntoView(target) {
+    if (!target) return;
+
+    const scroll = (behavior = "smooth") =>
+      target.scrollIntoView({ behavior, block: "center", inline: "nearest" });
+
+    scroll();
+    window.setTimeout(() => scroll("auto"), 120);
+    window.setTimeout(() => scroll("auto"), 320);
   },
 
   applyReaderStyleFromControl(event) {
@@ -467,7 +628,7 @@ const PaperReader = {
     );
   },
 
-  captureSelection(selectionDocument = document) {
+  captureSelection(selectionDocument = document, { commit = false } = {}) {
     const selection = selectionDocument.getSelection();
     const text = selection?.toString().trim() || "";
 
@@ -496,7 +657,7 @@ const PaperReader = {
     const blockId = block?.dataset.paperBlockId || "unknown block";
     const sectionId = section?.dataset.paperSectionId || "unknown section";
 
-    this.showSelectionPanel({ text, blockId, sectionId });
+    this.showSelectionPanel({ text, blockId, sectionId, commit });
   },
 
   selectionBelongsToReader(container) {
@@ -522,7 +683,9 @@ const PaperReader = {
     );
   },
 
-  showSelectionPanel({ text, blockId, sectionId }) {
+  showSelectionPanel({ text, blockId, sectionId, commit = false }) {
+    this.openWorkspacePanel("paper-workspace-ai");
+
     const empty = this.el.querySelector("[data-paper-selection-empty]");
     const result = this.el.querySelector("[data-paper-selection-result]");
     const textTarget = this.el.querySelector("[data-paper-selection-text]");
@@ -540,20 +703,20 @@ const PaperReader = {
     result.hidden = false;
     if (captureNode) captureNode.hidden = false;
     textTarget.textContent = text;
-    metaTarget.textContent = `${sectionId} · ${blockId} · ${text.length} characters selected`;
+    metaTarget.textContent = `${formatSectionLabel(sectionId)} · ${blockId} · ${text.length} characters selected`;
     if (termTarget) termTarget.textContent = text;
-    if (sectionTarget) sectionTarget.textContent = sectionId;
+    if (sectionTarget) sectionTarget.textContent = formatSectionLabel(sectionId);
     if (blockTarget) blockTarget.textContent = blockId;
     if (graphSourceTarget) graphSourceTarget.textContent = sectionId;
     if (graphQuestionTarget)
       graphQuestionTarget.textContent = `What does “${truncateText(text, 54)}” mean here?`;
+    this.updateSelectionInputs({ text, sectionId, blockId });
 
     const signature = `${sectionId}::${blockId}::${text}`;
     if (signature !== this.lastSelectionSignature) {
+      if (!commit) return;
+
       this.lastSelectionSignature = signature;
-      this.el
-        .querySelector(".paper-selection-panel")
-        ?.scrollTo({ top: 0, behavior: "smooth" });
       this.pushEvent("paper_selection_captured", {
         selected_text: text,
         section_id: sectionId,
@@ -585,7 +748,21 @@ const PaperReader = {
     if (graphSourceTarget) graphSourceTarget.textContent = "Attention Is All You Need";
     if (graphQuestionTarget)
       graphQuestionTarget.textContent = "What does this term mean here?";
+    this.updateSelectionInputs();
     this.lastSelectionSignature = null;
+  },
+
+  updateSelectionInputs({ text = "", sectionId = "", blockId = "" } = {}) {
+    const values = {
+      selected_text: text,
+      section_id: sectionId,
+      block_id: blockId,
+    };
+
+    for (const [name, value] of Object.entries(values)) {
+      const input = this.el.querySelector(`[data-paper-selection-input="${name}"]`);
+      if (input) input.value = value;
+    }
   },
 
   decorateSavedAnnotations() {
@@ -704,6 +881,17 @@ function truncateText(value, maxLength) {
 
 function capitalize(value) {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function formatSectionLabel(value) {
+  if (!value) return "Unknown section";
+  if (value === "compiled-tex4ht") return "Compiled HTML";
+
+  return value
+    .split("-")
+    .filter(Boolean)
+    .map(capitalize)
+    .join(" ");
 }
 
 function cssEscape(value) {

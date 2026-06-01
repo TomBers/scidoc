@@ -25,15 +25,7 @@ defmodule Sciencecritic.PaperQA do
   def get_or_create_selection(attrs) do
     attrs = selection_attrs(attrs)
 
-    query =
-      from selection in Selection,
-        where:
-          selection.paper_id == ^attrs.paper_id and
-            selection.section_id == ^attrs.section_id and
-            selection.block_id == ^attrs.block_id and
-            selection.text_hash == ^attrs.text_hash
-
-    case Repo.one(query) do
+    case Repo.one(selection_lookup_query(attrs)) do
       nil ->
         %Selection{}
         |> Selection.changeset(attrs)
@@ -42,6 +34,14 @@ defmodule Sciencecritic.PaperQA do
       selection ->
         {:ok, selection}
     end
+  end
+
+  def get_selection_by_attrs(attrs) do
+    attrs = selection_attrs(attrs)
+
+    attrs
+    |> selection_lookup_query()
+    |> Repo.one()
   end
 
   def create_question(selection_or_attrs, question_text, opts \\ [])
@@ -97,24 +97,42 @@ defmodule Sciencecritic.PaperQA do
   end
 
   def list_paper_selections(paper_id) do
-    question_query =
-      from question in Question,
-        order_by: [asc: question.inserted_at, asc: question.id]
-
     Selection
     |> where([selection], selection.paper_id == ^paper_id)
     |> order_by([selection], desc: selection.updated_at, desc: selection.id)
-    |> preload(questions: ^question_query)
+    |> preload(questions: ^question_order_query())
+    |> Repo.all()
+  end
+
+  def list_paper_question_selections(paper_id) do
+    Selection
+    |> where([selection], selection.paper_id == ^paper_id)
+    |> join(:inner, [selection], question in assoc(selection, :questions))
+    |> distinct(true)
+    |> order_by([selection], desc: selection.updated_at, desc: selection.id)
+    |> preload(questions: ^question_order_query())
     |> Repo.all()
   end
 
   def get_selection_with_questions(selection_id) do
     Selection
-    |> preload(
-      questions:
-        ^from(question in Question, order_by: [asc: question.inserted_at, asc: question.id])
-    )
+    |> preload(questions: ^question_order_query())
     |> Repo.get(selection_id)
+  end
+
+  defp selection_lookup_query(attrs) do
+    from selection in Selection,
+      where:
+        selection.paper_id == ^attrs.paper_id and
+          selection.section_id == ^attrs.section_id and
+          selection.block_id == ^attrs.block_id and
+          selection.text_hash == ^attrs.text_hash,
+      preload: [questions: ^question_order_query()]
+  end
+
+  defp question_order_query do
+    from question in Question,
+      order_by: [asc: question.inserted_at, asc: question.id]
   end
 
   defp update_question(%Question{} = question, attrs) do
