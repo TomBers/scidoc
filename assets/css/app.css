@@ -369,11 +369,7 @@
 .paper-document {
     grid-column: 1;
     grid-row: 1;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 1rem;
-    padding: clamp(1rem, 2vw, 2rem);
-    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
-    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+    min-width: 0;
 }
 
 .paper-document-header {
@@ -556,21 +552,67 @@
     line-height: 1.55;
 }
 
-.paper-selection-panel {
-    position: sticky;
-    top: 1rem;
+.paper-reader-rail {
     grid-column: 2;
     grid-row: 1;
-    align-self: start;
-    max-height: calc(100vh - 2rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    display: grid;
+    gap: 0.85rem;
+    align-self: stretch;
+    align-content: start;
+    overflow-anchor: none;
+}
+
+.paper-workspace-intro,
+.paper-ai-history-panel {
     border: 1px solid rgba(37, 99, 235, 0.14);
-    border-radius: 1.25rem;
+    border-radius: 1rem;
     padding: 1rem;
     background: rgba(255, 255, 255, 0.9);
     box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
     backdrop-filter: blur(14px);
+}
+
+.paper-selection-panel,
+.paper-reader-rail,
+.paper-workspace-section,
+.semantic-section-dropdowns {
+    scroll-margin-top: 1rem;
+}
+
+.paper-workspace-intro {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.paper-ai-history-panel,
+.paper-selection-panel {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.paper-ai-history-panel {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    overflow-anchor: none;
+}
+
+.paper-workspace-intro h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: clamp(1.3rem, 2.4vw, 1.85rem);
+    font-weight: 880;
+    letter-spacing: 0;
+    line-height: 1.08;
+}
+
+.paper-workspace-intro p:not(.paper-reader-kicker) {
+    margin: 0;
+    color: #475569;
+    font-size: 0.92rem;
+    line-height: 1.55;
 }
 
 .paper-panel-toolbar {
@@ -578,6 +620,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
+    margin-top: 0.15rem;
 }
 
 .paper-panel-toolbar h2 {
@@ -632,6 +675,17 @@
     transform: translateY(-1px);
 }
 
+.paper-ai-history-panel > .paper-panel-toolbar > span {
+    flex: 0 0 auto;
+    border: 1px solid rgba(37, 99, 235, 0.16);
+    border-radius: 999px;
+    padding: 0.28rem 0.5rem;
+    color: #1d4ed8;
+    font-size: 0.72rem;
+    font-weight: 820;
+    background: #eff6ff;
+}
+
 .paper-workspace-map {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -680,19 +734,78 @@
 }
 
 .paper-workspace-section {
-    border-top: 1px solid rgba(15, 23, 42, 0.08);
-    margin-top: 0.8rem;
-    padding-top: 0.8rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1rem;
+    padding: 0.55rem;
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.paper-workspace-section > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-radius: 0.75rem;
+    padding: 0.42rem 0.5rem;
+    cursor: pointer;
+    list-style: none;
+    transition:
+        background 160ms ease,
+        transform 160ms ease;
+}
+
+.paper-workspace-section > summary::-webkit-details-marker {
+    display: none;
+}
+
+.paper-workspace-section > summary:hover {
+    background: #eff6ff;
+}
+
+.paper-workspace-section > summary::after {
+    content: "";
+    flex: 0 0 auto;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-right: 2px solid #2563eb;
+    border-bottom: 2px solid #2563eb;
+    transform: rotate(45deg);
+    transition: transform 160ms ease;
+}
+
+.paper-workspace-section[open] > summary::after {
+    transform: translateY(0.18rem) rotate(225deg);
+}
+
+.paper-workspace-section > summary span {
+    min-width: 0;
+    color: #0f172a;
+    font-size: 0.95rem;
+    font-weight: 850;
+}
+
+.paper-workspace-section > summary small {
+    flex: 0 0 auto;
+    border: 1px solid rgba(37, 99, 235, 0.16);
+    border-radius: 999px;
+    padding: 0.24rem 0.48rem;
+    color: #1d4ed8;
+    font-size: 0.7rem;
+    font-weight: 820;
+    background: #eff6ff;
+}
+
+.paper-workspace-section[open] > :not(summary) {
+    margin-top: 0.65rem;
 }
 
 .paper-primary-workflow {
-    border-top: 0;
-    margin-top: 0.9rem;
-    padding-top: 0;
+    display: grid;
+    gap: 0.65rem;
 }
 
 .paper-secondary-workflow {
-    margin-top: 1rem;
+    margin-top: 0;
 }
 
 .paper-workspace-section-heading {
@@ -1030,8 +1143,8 @@
 }
 
 .paper-selection-result blockquote {
-    max-height: 5.8rem;
-    overflow: auto;
+    display: -webkit-box;
+    overflow: hidden;
     margin: 0;
     border-left: 3px solid #2563eb;
     padding-left: 0.65rem;
@@ -1039,6 +1152,8 @@
     font-size: 0.95rem;
     font-weight: 780;
     line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
 }
 
 .paper-selection-summary dl {
@@ -1291,8 +1406,6 @@
 }
 
 .paper-question-answer {
-    max-height: 10rem;
-    overflow: auto;
     margin-top: 0.55rem;
     border-left: 3px solid #2563eb;
     padding-left: 0.7rem;
@@ -1310,8 +1423,6 @@
 .paper-saved-question-list {
     display: grid;
     gap: 0.42rem;
-    max-height: 11.5rem;
-    overflow: auto;
 }
 
 .paper-saved-question-list button {
@@ -1373,38 +1484,7 @@
     padding: 0;
 }
 
-.paper-panel-disclosure > summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    cursor: pointer;
-    list-style: none;
-}
-
-.paper-panel-disclosure > summary::-webkit-details-marker {
-    display: none;
-}
-
-.paper-panel-disclosure > summary span {
-    color: #0f172a;
-    font-size: 0.95rem;
-    font-weight: 850;
-}
-
-.paper-panel-disclosure > summary small {
-    border: 1px solid rgba(37, 99, 235, 0.16);
-    border-radius: 999px;
-    padding: 0.24rem 0.48rem;
-    color: #1d4ed8;
-    font-size: 0.7rem;
-    font-weight: 820;
-    background: #eff6ff;
-}
-
 .paper-panel-disclosure .semantic-section-dropdowns {
-    max-height: 17rem;
-    overflow: auto;
     margin-top: 0.65rem;
 }
 
@@ -1470,7 +1550,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-top: 1rem;
+    margin-top: 0;
 }
 
 .semantic-source-strip span {
@@ -1486,7 +1566,6 @@
 .paper-compiled-root {
     display: block;
     width: 100%;
-    min-height: min(86vh, 72rem);
     color-scheme: light;
 }
 

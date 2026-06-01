@@ -3,10 +3,13 @@ const PaperReader = {
     this.compiledShadowRoot = null;
     this.lastSelectionSignature = null;
     this.handleSelectionChange = () =>
-      this.captureSelection(this.activeSelectionDocument());
+      this.captureSelection(this.activeSelectionDocument(), { commit: false });
     this.handleSelectionEnd = () =>
       window.setTimeout(
-        () => this.captureSelection(this.activeSelectionDocument()),
+        () =>
+          this.captureSelection(this.activeSelectionDocument(), {
+            commit: true,
+          }),
         0,
       );
     this.handleClick = (event) => this.handleReaderClick(event);
@@ -117,9 +120,6 @@ const PaperReader = {
 
       .compiled-paper-document {
         box-sizing: border-box;
-        min-height: min(86vh, 72rem);
-        max-height: calc(100vh - 2rem);
-        overflow: auto;
         border: 1px solid rgba(15, 23, 42, 0.1);
         border-radius: 1rem;
         background: #ffffff;
@@ -467,7 +467,7 @@ const PaperReader = {
     );
   },
 
-  captureSelection(selectionDocument = document) {
+  captureSelection(selectionDocument = document, { commit = false } = {}) {
     const selection = selectionDocument.getSelection();
     const text = selection?.toString().trim() || "";
 
@@ -496,7 +496,7 @@ const PaperReader = {
     const blockId = block?.dataset.paperBlockId || "unknown block";
     const sectionId = section?.dataset.paperSectionId || "unknown section";
 
-    this.showSelectionPanel({ text, blockId, sectionId });
+    this.showSelectionPanel({ text, blockId, sectionId, commit });
   },
 
   selectionBelongsToReader(container) {
@@ -522,7 +522,7 @@ const PaperReader = {
     );
   },
 
-  showSelectionPanel({ text, blockId, sectionId }) {
+  showSelectionPanel({ text, blockId, sectionId, commit = false }) {
     const empty = this.el.querySelector("[data-paper-selection-empty]");
     const result = this.el.querySelector("[data-paper-selection-result]");
     const textTarget = this.el.querySelector("[data-paper-selection-text]");
@@ -550,10 +550,9 @@ const PaperReader = {
 
     const signature = `${sectionId}::${blockId}::${text}`;
     if (signature !== this.lastSelectionSignature) {
+      if (!commit) return;
+
       this.lastSelectionSignature = signature;
-      this.el
-        .querySelector(".paper-selection-panel")
-        ?.scrollTo({ top: 0, behavior: "smooth" });
       this.pushEvent("paper_selection_captured", {
         selected_text: text,
         section_id: sectionId,

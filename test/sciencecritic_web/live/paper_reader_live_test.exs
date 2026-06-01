@@ -21,14 +21,17 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
     assert has_element?(view, "[data-paper-style-kind='theme']")
     assert has_element?(view, "[data-paper-style-kind='font']")
     assert has_element?(view, "[data-paper-style-kind='spacing']")
-    assert has_element?(view, ".semantic-outline")
+    assert has_element?(view, ".paper-workspace-intro.semantic-paper-header")
+    assert has_element?(view, ".paper-ai-history-panel")
+    refute has_element?(view, ".paper-document-header")
     assert has_element?(view, "#paper-section-navigator details")
     assert has_element?(view, "[data-paper-nav-target='introduction']")
     assert has_element?(view, "[data-paper-selection-text]")
 
     html = render(view)
     assert html =~ "Attention Is All You Need"
-    assert html =~ "Ask the paper"
+    assert html =~ "Ask AI / History"
+    assert html =~ "Ask about a selection"
     assert html =~ "/generated_papers/attention/ms.html"
     refute html =~ "LaTeX.js renderer"
     refute html =~ "document-scene"
