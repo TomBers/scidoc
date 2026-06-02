@@ -139,15 +139,25 @@ const PaperReader = {
       }
 
       .paper-term-question-link {
+        display: inline;
         border: 0;
         border-radius: 0.28rem;
         padding: 0.04rem 0.18rem;
+        margin: 0;
         color: #1d4ed8;
         font: inherit;
+        font-size: inherit;
         font-weight: 700;
         background: #dbeafe;
         box-shadow: inset 0 -1px 0 rgba(37, 99, 235, 0.26);
         cursor: pointer;
+        white-space: inherit;
+        line-height: inherit;
+        vertical-align: baseline;
+        text-decoration: none;
+        word-break: normal;
+        overflow-wrap: normal;
+        hyphens: none;
         transition:
           background 160ms ease,
           color 160ms ease,
@@ -894,9 +904,10 @@ const PaperReader = {
     const before = node.textContent.slice(0, index);
     const matchedText = node.textContent.slice(index, index + matchLength);
     const after = node.textContent.slice(index + matchLength);
-    const marker = document.createElement("button");
-    marker.type = "button";
+    const marker = document.createElement("span");
     marker.className = "paper-term-question-link";
+    marker.setAttribute("role", "button");
+    marker.setAttribute("tabindex", "0");
     marker.dataset.paperSavedTerm = "true";
     marker.dataset.paperSelectionId = annotation.id;
     marker.dataset.paperSelectionText = annotation.selected_text;
@@ -913,6 +924,12 @@ const PaperReader = {
         blockId: annotation.block_id,
         selectedText: annotation.selected_text,
       });
+    });
+    marker.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        marker.click();
+      }
     });
 
     node.replaceWith(before, marker, after);

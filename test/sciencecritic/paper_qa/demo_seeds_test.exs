@@ -15,8 +15,8 @@ defmodule Sciencecritic.PaperQA.DemoSeedsTest do
     assert length(selections) == length(DemoSeeds.examples())
 
     seeded_text = Enum.map(selections, & &1.selected_text)
-    assert Enum.any?(seeded_text, &String.contains?(&1, "divide each by"))
-    assert Enum.any?(seeded_text, &String.contains?(&1, "position"))
+    assert Enum.any?(seeded_text, &String.contains?(&1, "attention mechanisms"))
+    assert Enum.any?(seeded_text, &String.contains?(&1, "recurrence"))
 
     seeded_questions = selections |> Enum.flat_map(& &1.questions) |> Enum.map(& &1.question)
     assert "Why divide by sqrt(d_k) in scaled dot-product attention?" in seeded_questions
