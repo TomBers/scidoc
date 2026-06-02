@@ -1,5 +1,5 @@
 defmodule SciencecriticWeb.PaperReaderLiveTest do
-  use SciencecriticWeb.ConnCase, async: true
+  use SciencecriticWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
 
