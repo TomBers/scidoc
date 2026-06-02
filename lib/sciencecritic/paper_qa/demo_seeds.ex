@@ -19,7 +19,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
   @examples [
     %{
       section_id: "abstract",
-      block_id: "demo-abstract-transformer",
+      block_id: "abstract-block-565703",
       selected_text:
         "the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely",
       question:
@@ -29,7 +29,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     },
     %{
       section_id: "introduction",
-      block_id: "demo-introduction-sequential-computation",
+      block_id: "introduction-block-991620",
       selected_text:
         "This inherently sequential nature precludes parallelization within training examples",
       question: "Why is sequential computation such a bottleneck for training sequence models?",
@@ -38,7 +38,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     },
     %{
       section_id: "model-architecture",
-      block_id: "demo-model-architecture-encoder-decoder",
+      block_id: "model-architecture-block-628174",
       selected_text:
         "the encoder maps an input sequence of symbol representations to a sequence of continuous representations",
       question: "What does it mean for the encoder to map symbols to continuous representations?",
@@ -47,7 +47,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     },
     %{
       section_id: "scaled-dot-product-attention",
-      block_id: "demo-scaled-dot-product-attention",
+      block_id: "scaled-dot-product-attention-block-818939",
       selected_text:
         "We compute the dot products of the query with all keys, divide each by sqrt(d_k), and apply a softmax function to obtain the weights on the values.",
       question: "Why divide by sqrt(d_k) in scaled dot-product attention?",
@@ -56,7 +56,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     },
     %{
       section_id: "multi-head-attention",
-      block_id: "demo-multi-head-attention",
+      block_id: "multi-head-attention-block-476228",
       selected_text:
         "Multi-head attention allows the model to jointly attend to information from different representation subspaces at different positions.",
       question: "What are representation subspaces, and why do multiple heads help?",
@@ -65,7 +65,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     },
     %{
       section_id: "positional-encoding",
-      block_id: "demo-positional-encoding",
+      block_id: "positional-encoding-block-257309",
       selected_text:
         "Since our model contains no recurrence and no convolution, in order for the model to make use of the order of the sequence, we must inject some information about the relative or absolute position of the tokens",
       question: "Why does the Transformer need positional encoding?",
@@ -74,7 +74,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     },
     %{
       section_id: "why-self-attention",
-      block_id: "demo-why-self-attention-path-length",
+      block_id: "why-self-attention-block-764195",
       selected_text:
         "The shorter these paths between any combination of positions in the input and output sequences, the easier it is to learn long-range dependencies",
       question: "What is path length, and why does it matter for long-range dependencies?",
@@ -83,7 +83,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     },
     %{
       section_id: "regularization",
-      block_id: "demo-regularization-label-smoothing",
+      block_id: "regularization-block-726822",
       selected_text: "During training, we employed label smoothing of value epsilon_ls = 0.1",
       question: "What does label smoothing do here?",
       answer:
@@ -91,7 +91,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     },
     %{
       section_id: "machine-translation",
-      block_id: "demo-results-bleu",
+      block_id: "machine-translation-block-957929",
       selected_text:
         "The Transformer achieves better BLEU scores than previous state-of-the-art models",
       question: "What should a reader understand about BLEU in this result?",
@@ -100,7 +100,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     },
     %{
       section_id: "english-constituency-parsing",
-      block_id: "demo-results-parsing-generalization",
+      block_id: "english-constituency-parsing-block-570126",
       selected_text:
         "To evaluate if the Transformer can generalize to other tasks we performed experiments on English constituency parsing.",
       question: "Why include constituency parsing in a machine translation paper?",
