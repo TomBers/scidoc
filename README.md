@@ -49,10 +49,11 @@ mix deps.get --only prod
 mix assets.setup
 mix compile
 mix assets.deploy
-mix release
+mix release --overwrite
 
 # bin/render-start
 _build/prod/rel/sciencecritic/bin/migrate
+_build/prod/rel/sciencecritic/bin/sciencecritic eval Sciencecritic.Release.seed
 exec _build/prod/rel/sciencecritic/bin/server
 ```
 
@@ -63,6 +64,7 @@ Why:
 * `mix release` packages the compiled app so Render does not need to start the service through Mix.
 * SQLite must live in a writable directory. `eacces` usually means `DATABASE_PATH` points somewhere Render cannot write, or the parent directory is not on a mounted disk.
 * `bin/render-start` runs the release migration command before the server starts so tables such as `paper_selections` exist.
+* `bin/render-start` also runs idempotent demo seeds so ephemeral SQLite deployments still show example explanations after every deploy.
 * The GitHub repo can be named `scidoc` while the Phoenix/OTP app remains `:sciencecritic`; those names do not need to match.
 
 ## Useful commands

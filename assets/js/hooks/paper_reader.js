@@ -34,7 +34,10 @@ const PaperReader = {
     this.el.removeEventListener("mouseup", this.handleSelectionEnd);
     this.el.removeEventListener("keyup", this.handleSelectionEnd);
     this.el.removeEventListener("click", this.handleClick);
-    this.compiledShadowRoot?.removeEventListener("click", this.handleCompiledClick);
+    this.compiledShadowRoot?.removeEventListener(
+      "click",
+      this.handleCompiledClick,
+    );
   },
 
   activeSelectionDocument() {
@@ -136,15 +139,25 @@ const PaperReader = {
       }
 
       .paper-term-question-link {
+        display: inline;
         border: 0;
         border-radius: 0.28rem;
         padding: 0.04rem 0.18rem;
+        margin: 0;
         color: #1d4ed8;
         font: inherit;
+        font-size: inherit;
         font-weight: 700;
         background: #dbeafe;
         box-shadow: inset 0 -1px 0 rgba(37, 99, 235, 0.26);
         cursor: pointer;
+        white-space: inherit;
+        line-height: inherit;
+        vertical-align: baseline;
+        text-decoration: none;
+        word-break: normal;
+        overflow-wrap: normal;
+        hyphens: none;
         transition:
           background 160ms ease,
           color 160ms ease,
@@ -409,7 +422,8 @@ const PaperReader = {
       }
 
       if (element.dataset.paperBlockId) {
-        element.dataset.paperSectionId = element.dataset.paperSectionId || currentSectionId;
+        element.dataset.paperSectionId =
+          element.dataset.paperSectionId || currentSectionId;
       }
     }
   },
@@ -664,11 +678,10 @@ const PaperReader = {
     if (!container) return false;
 
     return (
-      this.compiledShadowRoot &&
-      container.getRootNode() === this.compiledShadowRoot
-    ) || (
-      this.el.querySelector(".paper-document")?.contains(container) &&
-      container.closest?.("[data-paper-block-id], [data-paper-section-id]")
+      (this.compiledShadowRoot &&
+        container.getRootNode() === this.compiledShadowRoot) ||
+      (this.el.querySelector(".paper-document")?.contains(container) &&
+        container.closest?.("[data-paper-block-id], [data-paper-section-id]"))
     );
   },
 
@@ -678,8 +691,8 @@ const PaperReader = {
 
     return Boolean(
       result &&
-        !result.hidden &&
-        (textTarget?.textContent || "").trim().length > 0,
+      !result.hidden &&
+      (textTarget?.textContent || "").trim().length > 0,
     );
   },
 
@@ -691,10 +704,16 @@ const PaperReader = {
     const textTarget = this.el.querySelector("[data-paper-selection-text]");
     const metaTarget = this.el.querySelector("[data-paper-selection-meta]");
     const termTarget = this.el.querySelector("[data-paper-selection-term]");
-    const sectionTarget = this.el.querySelector("[data-paper-selection-section]");
+    const sectionTarget = this.el.querySelector(
+      "[data-paper-selection-section]",
+    );
     const blockTarget = this.el.querySelector("[data-paper-selection-block]");
-    const graphSourceTarget = this.el.querySelector("[data-paper-graph-source]");
-    const graphQuestionTarget = this.el.querySelector("[data-paper-graph-question]");
+    const graphSourceTarget = this.el.querySelector(
+      "[data-paper-graph-source]",
+    );
+    const graphQuestionTarget = this.el.querySelector(
+      "[data-paper-graph-question]",
+    );
     const captureNode = this.el.querySelector("[data-paper-capture-node]");
 
     if (!result || !textTarget || !metaTarget) return;
@@ -705,7 +724,8 @@ const PaperReader = {
     textTarget.textContent = text;
     metaTarget.textContent = `${formatSectionLabel(sectionId)} · ${blockId} · ${text.length} characters selected`;
     if (termTarget) termTarget.textContent = text;
-    if (sectionTarget) sectionTarget.textContent = formatSectionLabel(sectionId);
+    if (sectionTarget)
+      sectionTarget.textContent = formatSectionLabel(sectionId);
     if (blockTarget) blockTarget.textContent = blockId;
     if (graphSourceTarget) graphSourceTarget.textContent = sectionId;
     if (graphQuestionTarget)
@@ -731,10 +751,16 @@ const PaperReader = {
     const textTarget = this.el.querySelector("[data-paper-selection-text]");
     const metaTarget = this.el.querySelector("[data-paper-selection-meta]");
     const termTarget = this.el.querySelector("[data-paper-selection-term]");
-    const sectionTarget = this.el.querySelector("[data-paper-selection-section]");
+    const sectionTarget = this.el.querySelector(
+      "[data-paper-selection-section]",
+    );
     const blockTarget = this.el.querySelector("[data-paper-selection-block]");
-    const graphSourceTarget = this.el.querySelector("[data-paper-graph-source]");
-    const graphQuestionTarget = this.el.querySelector("[data-paper-graph-question]");
+    const graphSourceTarget = this.el.querySelector(
+      "[data-paper-graph-source]",
+    );
+    const graphQuestionTarget = this.el.querySelector(
+      "[data-paper-graph-question]",
+    );
     const captureNode = this.el.querySelector("[data-paper-capture-node]");
 
     if (empty) empty.hidden = false;
@@ -745,7 +771,8 @@ const PaperReader = {
     if (termTarget) termTarget.textContent = "Selected passage";
     if (sectionTarget) sectionTarget.textContent = "unknown section";
     if (blockTarget) blockTarget.textContent = "unknown block";
-    if (graphSourceTarget) graphSourceTarget.textContent = "Attention Is All You Need";
+    if (graphSourceTarget)
+      graphSourceTarget.textContent = "Attention Is All You Need";
     if (graphQuestionTarget)
       graphQuestionTarget.textContent = "What does this term mean here?";
     this.updateSelectionInputs();
@@ -760,7 +787,9 @@ const PaperReader = {
     };
 
     for (const [name, value] of Object.entries(values)) {
-      const input = this.el.querySelector(`[data-paper-selection-input="${name}"]`);
+      const input = this.el.querySelector(
+        `[data-paper-selection-input="${name}"]`,
+      );
       if (input) input.value = value;
     }
   },
@@ -800,20 +829,24 @@ const PaperReader = {
         `[data-paper-section-id="${cssEscape(annotation.section_id)}"]`,
       )?.parentElement || this.compiledShadowRoot;
 
+    // Normalize whitespace for comparison
+    const normalizedSearchText = annotation.selected_text
+      .replace(/\s+/g, " ")
+      .trim();
+
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: (node) => {
         const text = node.textContent || "";
+        const normalizedText = text.replace(/\s+/g, " ");
         const parent = node.parentElement;
 
-        if (!text.includes(annotation.selected_text)) {
+        if (!normalizedText.includes(normalizedSearchText)) {
           return NodeFilter.FILTER_REJECT;
         }
 
         if (
           !parent ||
-          parent.closest(
-            "a, button, script, style, [data-paper-saved-term]",
-          )
+          parent.closest("a, button, script, style, [data-paper-saved-term]")
         ) {
           return NodeFilter.FILTER_REJECT;
         }
@@ -825,18 +858,59 @@ const PaperReader = {
     const node = walker.nextNode();
     if (!node) return;
 
-    const index = node.textContent.indexOf(annotation.selected_text);
-    if (index < 0) return;
+    // Find the match in the normalized text, then map back to original positions
+    const normalizedNodeText = node.textContent.replace(/\s+/g, " ");
+    const normalizedIndex = normalizedNodeText.indexOf(normalizedSearchText);
+    if (normalizedIndex < 0) return;
+
+    // Find the actual start/end positions in the original text
+    // by counting characters while normalizing whitespace
+    let actualStartIndex = -1;
+    let actualEndIndex = -1;
+    let normalizedCount = 0;
+    const originalText = node.textContent;
+
+    for (let i = 0; i < originalText.length; i++) {
+      const char = originalText[i];
+      const isWhitespace = /\s/.test(char);
+
+      if (isWhitespace) {
+        // Skip consecutive whitespace in normalized counting
+        if (i === 0 || !/\s/.test(originalText[i - 1])) {
+          if (normalizedCount === normalizedIndex && actualStartIndex === -1) {
+            actualStartIndex = i;
+          }
+          normalizedCount++;
+        }
+      } else {
+        if (normalizedCount === normalizedIndex && actualStartIndex === -1) {
+          actualStartIndex = i;
+        }
+        normalizedCount++;
+      }
+
+      if (normalizedCount === normalizedIndex + normalizedSearchText.length) {
+        actualEndIndex = i + 1;
+        break;
+      }
+    }
+
+    if (actualStartIndex < 0 || actualEndIndex < 0) return;
+
+    const index = actualStartIndex;
+    const matchLength = actualEndIndex - actualStartIndex;
 
     const before = node.textContent.slice(0, index);
-    const after = node.textContent.slice(index + annotation.selected_text.length);
-    const marker = document.createElement("button");
-    marker.type = "button";
+    const matchedText = node.textContent.slice(index, index + matchLength);
+    const after = node.textContent.slice(index + matchLength);
+    const marker = document.createElement("span");
     marker.className = "paper-term-question-link";
+    marker.setAttribute("role", "button");
+    marker.setAttribute("tabindex", "0");
     marker.dataset.paperSavedTerm = "true";
     marker.dataset.paperSelectionId = annotation.id;
     marker.dataset.paperSelectionText = annotation.selected_text;
-    marker.textContent = annotation.selected_text;
+    marker.textContent = matchedText;
     marker.title = `${annotation.question_count} saved question${annotation.question_count === 1 ? "" : "s"}`;
     marker.addEventListener("click", (event) => {
       event.preventDefault();
@@ -849,6 +923,12 @@ const PaperReader = {
         blockId: annotation.block_id,
         selectedText: annotation.selected_text,
       });
+    });
+    marker.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        marker.click();
+      }
     });
 
     node.replaceWith(before, marker, after);
@@ -887,11 +967,7 @@ function formatSectionLabel(value) {
   if (!value) return "Unknown section";
   if (value === "compiled-tex4ht") return "Compiled HTML";
 
-  return value
-    .split("-")
-    .filter(Boolean)
-    .map(capitalize)
-    .join(" ");
+  return value.split("-").filter(Boolean).map(capitalize).join(" ");
 }
 
 function cssEscape(value) {

@@ -2,4 +2,5 @@
 set -euo pipefail
 
 _build/prod/rel/sciencecritic/bin/migrate
+_build/prod/rel/sciencecritic/bin/sciencecritic eval Sciencecritic.Release.seed
 exec _build/prod/rel/sciencecritic/bin/server
