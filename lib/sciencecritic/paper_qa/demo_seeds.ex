@@ -128,6 +128,8 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
         question.paper_selection_id == ^selection.id and
           is_nil(question.parent_question_id) and question.question == ^example.question
       )
+      |> order_by([question], asc: question.id)
+      |> limit(1)
       |> Repo.one()
 
     if existing do

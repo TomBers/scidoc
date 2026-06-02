@@ -865,7 +865,6 @@ const PaperReader = {
 
     // Find the actual start/end positions in the original text
     // by counting characters while normalizing whitespace
-    let charCount = 0;
     let actualStartIndex = -1;
     let actualEndIndex = -1;
     let normalizedCount = 0;
