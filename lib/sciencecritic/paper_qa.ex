@@ -109,7 +109,7 @@ defmodule Sciencecritic.PaperQA do
     |> where([selection], selection.paper_id == ^paper_id)
     |> join(:inner, [selection], question in assoc(selection, :questions))
     |> distinct(true)
-    |> order_by([selection], desc: selection.updated_at, desc: selection.id)
+    |> order_by([selection], asc: selection.inserted_at, asc: selection.id)
     |> preload(questions: ^question_order_query())
     |> Repo.all()
   end

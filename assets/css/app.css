@@ -1533,10 +1533,9 @@
     color: #0f172a;
     font-size: 0.86rem;
     font-weight: 850;
-    line-height: 1.25;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.35;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .paper-saved-question-list small {
