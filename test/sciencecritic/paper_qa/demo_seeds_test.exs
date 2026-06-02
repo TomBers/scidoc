@@ -15,7 +15,7 @@ defmodule Sciencecritic.PaperQA.DemoSeedsTest do
     assert length(selections) == length(DemoSeeds.examples())
 
     seeded_text = Enum.map(selections, & &1.selected_text)
-    assert Enum.any?(seeded_text, &String.contains?(&1, "sqrt(d_k)"))
+    assert Enum.any?(seeded_text, &String.contains?(&1, "divide each by"))
     assert Enum.any?(seeded_text, &String.contains?(&1, "position"))
 
     seeded_questions = selections |> Enum.flat_map(& &1.questions) |> Enum.map(& &1.question)

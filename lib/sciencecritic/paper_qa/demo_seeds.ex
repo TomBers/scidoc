@@ -39,8 +39,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     %{
       section_id: "model-architecture",
       block_id: "model-architecture-block-628174",
-      selected_text:
-        "the encoder maps an input sequence of symbol representations to a sequence of continuous representations",
+      selected_text: "the encoder maps an input sequence of symbol representations",
       question: "What does it mean for the encoder to map symbols to continuous representations?",
       answer:
         "The input tokens start as discrete symbols such as word pieces. The encoder turns each token into a vector that captures contextual information from the surrounding sequence. By the end of the encoder stack, each vector is no longer just a token embedding; it is a learned representation of that token in context."
@@ -48,8 +47,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     %{
       section_id: "scaled-dot-product-attention",
       block_id: "scaled-dot-product-attention-block-818939",
-      selected_text:
-        "We compute the dot products of the query with all keys, divide each by sqrt(d_k), and apply a softmax function to obtain the weights on the values.",
+      selected_text: "We compute the dot products of the query with all keys, divide each by",
       question: "Why divide by sqrt(d_k) in scaled dot-product attention?",
       answer:
         "As the key/query dimension grows, raw dot products tend to have larger variance. Large dot products push the softmax into very peaked regions where gradients can become tiny. Dividing by sqrt(d_k) keeps the logits in a more stable range, making optimization easier while preserving the relative similarity signal."
@@ -84,7 +82,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
     %{
       section_id: "regularization",
       block_id: "regularization-block-726822",
-      selected_text: "During training, we employed label smoothing of value epsilon_ls = 0.1",
+      selected_text: "During training, we employed label smoothing of value",
       question: "What does label smoothing do here?",
       answer:
         "Label smoothing prevents the model from becoming overly confident that the single observed target token has probability 1. Instead, a small amount of probability mass is spread to other labels. This can improve generalization and calibration, though the paper notes it may increase perplexity while improving BLEU."
