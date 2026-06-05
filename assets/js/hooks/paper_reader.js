@@ -545,10 +545,10 @@ const PaperReader = {
     const control = event.target.closest("[data-paper-saved-selection-link]");
     if (!control || !this.el.contains(control)) return false;
 
-    const sectionId = control.dataset.paperSelectionSection;
-    const blockId = control.dataset.paperSelectionBlock;
-    const selectedText = control.dataset.paperSelectionText;
-    const selectionId = control.dataset.paperSelectionId;
+    const sectionId = control.dataset.paperSavedSelectionSection;
+    const blockId = control.dataset.paperSavedSelectionBlock;
+    const selectedText = control.dataset.paperSavedSelectionText;
+    const selectionId = control.dataset.paperSavedSelectionId;
 
     this.focusSavedSelection({ selectionId, sectionId, blockId, selectedText });
 

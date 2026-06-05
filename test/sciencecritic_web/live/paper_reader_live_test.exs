@@ -102,20 +102,40 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
         "What does Scaled Dot-Product Attention mean in this paper?"
       )
 
+    {:ok, next_selection} =
+      PaperQA.get_or_create_selection(%{
+        "paper_id" => "attention-is-all-you-need",
+        "section_id" => "multi-head-attention",
+        "block_id" => "compiled-block-124",
+        "selected_text" => "Multi-head attention"
+      })
+
+    {:ok, _question} =
+      PaperQA.create_question(
+        next_selection,
+        "Why do multiple attention heads help?"
+      )
+
     {:ok, view, _html} = live(conn, ~p"/papers/attention")
 
     assert has_element?(view, ".paper-saved-questions")
+    refute has_element?(view, ".paper-saved-question-list")
+    assert has_element?(view, ".paper-history-navigation", "1 of 2")
     assert has_element?(view, "[data-paper-saved-selection-link]")
 
     html = render(view)
     assert html =~ "Scaled Dot-Product Attention"
-    assert html =~ "1 saved"
+    assert html =~ "What does Scaled Dot-Product Attention mean in this paper?"
+    refute html =~ "Why do multiple attention heads help?"
+    assert html =~ "2 saved"
 
     view
-    |> element("[data-paper-saved-selection-link]")
+    |> element("[data-paper-history-next]")
     |> render_click()
 
-    assert has_element?(view, "#paper-selection-question-form")
-    assert render(view) =~ "What does Scaled Dot-Product Attention mean in this paper?"
+    html = render(view)
+    assert html =~ "Why do multiple attention heads help?"
+    refute html =~ "What does Scaled Dot-Product Attention mean in this paper?"
+    assert html =~ "2 of 2"
   end
 end

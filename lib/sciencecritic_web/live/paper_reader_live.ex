@@ -212,37 +212,6 @@ defmodule SciencecriticWeb.PaperReaderLive do
                 </p>
 
                 <%= if saved_question_count(@saved_selections) > 0 do %>
-                  <div class="paper-saved-question-list" aria-label="Saved passages with questions">
-                    <button
-                      :for={selection <- @saved_selections}
-                      :if={selection.questions != []}
-                      type="button"
-                      class={[history_selection_active?(@history_selection, selection) && "is-active"]}
-                      aria-current={
-                        if(history_selection_active?(@history_selection, selection),
-                          do: "true",
-                          else: "false"
-                        )
-                      }
-                      phx-click="select_saved_selection"
-                      phx-value-id={selection.id}
-                      data-paper-saved-selection-link
-                      data-paper-selection-id={selection.id}
-                      data-paper-selection-text={selection.selected_text}
-                      data-paper-selection-section={selection.section_id}
-                      data-paper-selection-block={selection.block_id}
-                    >
-                      <span>{section_label(selection.section_id)}</span>
-                      <strong>{selection.selected_text}</strong>
-                      <small>
-                        {length(selection.questions)} question{if(length(selection.questions) == 1,
-                          do: "",
-                          else: "s"
-                        )}
-                      </small>
-                    </button>
-                  </div>
-
                   <section
                     id="paper-history-detail"
                     class="paper-history-detail"
@@ -264,18 +233,25 @@ defmodule SciencecriticWeb.PaperReaderLive do
                           id={"paper-history-question-#{question.id}"}
                         >
                           <header>
-                            <span>{question.status}</span>
-                            <strong>Q</strong>
+                            <span>Question</span>
+                            <small>{question.status}</small>
                           </header>
-                          <p>{question.question}</p>
+                          <p class="paper-history-question-text">{question.question}</p>
                           <div class={[
                             "paper-question-answer",
+                            "paper-history-answer",
                             question.status == "failed" && "is-error"
                           ]}>
-                            {question.answer || question.error || "Waiting for an answer..."}
+                            <span>Answer</span>
+                            <p>{question.answer || question.error || "Waiting for an answer..."}</p>
                           </div>
                         </article>
                       </div>
+
+                      <.history_navigation
+                        saved_selections={@saved_selections}
+                        history_selection={@history_selection}
+                      />
                     <% else %>
                       <p class="paper-selection-empty">
                         Choose a saved passage to read its questions and answers.
@@ -795,11 +771,80 @@ defmodule SciencecriticWeb.PaperReaderLive do
     end
   end
 
-  defp history_selection_active?(%Selection{id: selected_id}, %Selection{id: selection_id}) do
-    selected_id == selection_id
+  defp history_navigation(assigns) do
+    selections = readable_history_selections(assigns.saved_selections)
+    current_index = history_selection_index(selections, assigns.history_selection)
+
+    assigns =
+      assigns
+      |> assign(:position_label, history_position_label(current_index, length(selections)))
+      |> assign(:previous_selection, adjacent_history_selection(selections, current_index, -1))
+      |> assign(:next_selection, adjacent_history_selection(selections, current_index, 1))
+
+    ~H"""
+    <nav class="paper-history-navigation" aria-label="Past question navigation">
+      <button
+        :if={@previous_selection}
+        type="button"
+        phx-click="select_saved_selection"
+        phx-value-id={@previous_selection.id}
+        data-paper-saved-selection-link
+        data-paper-saved-selection-id={@previous_selection.id}
+        data-paper-saved-selection-text={@previous_selection.selected_text}
+        data-paper-saved-selection-section={@previous_selection.section_id}
+        data-paper-saved-selection-block={@previous_selection.block_id}
+        data-paper-history-previous
+      >
+        <.icon name="hero-arrow-left" class="size-4" /> Previous
+      </button>
+      <button :if={!@previous_selection} type="button" disabled>
+        <.icon name="hero-arrow-left" class="size-4" /> Previous
+      </button>
+
+      <span>{@position_label}</span>
+
+      <button
+        :if={@next_selection}
+        type="button"
+        phx-click="select_saved_selection"
+        phx-value-id={@next_selection.id}
+        data-paper-saved-selection-link
+        data-paper-saved-selection-id={@next_selection.id}
+        data-paper-saved-selection-text={@next_selection.selected_text}
+        data-paper-saved-selection-section={@next_selection.section_id}
+        data-paper-saved-selection-block={@next_selection.block_id}
+        data-paper-history-next
+      >
+        Next <.icon name="hero-arrow-right" class="size-4" />
+      </button>
+      <button :if={!@next_selection} type="button" disabled>
+        Next <.icon name="hero-arrow-right" class="size-4" />
+      </button>
+    </nav>
+    """
   end
 
-  defp history_selection_active?(_, _), do: false
+  defp readable_history_selections(selections), do: Enum.filter(selections, &(&1.questions != []))
+
+  defp history_selection_index(_selections, nil), do: nil
+
+  defp history_selection_index(selections, %Selection{id: selection_id}) do
+    Enum.find_index(selections, &(&1.id == selection_id))
+  end
+
+  defp history_position_label(nil, 0), do: "No saved questions"
+  defp history_position_label(nil, count), do: "#{count} saved"
+  defp history_position_label(index, count), do: "#{index + 1} of #{count}"
+
+  defp adjacent_history_selection(_selections, nil, _offset), do: nil
+
+  defp adjacent_history_selection(selections, current_index, offset) do
+    target_index = current_index + offset
+
+    if target_index >= 0 and target_index < length(selections) do
+      Enum.at(selections, target_index)
+    end
+  end
 
   defp selection_for_question(socket, params) do
     case socket.assigns.selected_selection do
