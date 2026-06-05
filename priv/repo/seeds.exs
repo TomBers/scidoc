@@ -1,13 +1,2 @@
-# Script for populating the database. You can run it as:
-#
-#     mix run priv/repo/seeds.exs
-#
-# Inside the script, you can read and write to any of your
-# repositories directly:
-#
-#     Sciencecritic.Repo.insert!(%Sciencecritic.SomeSchema{})
-#
-# We recommend using the bang functions (`insert!`, `update!`
-# and so on) as they will fail if something goes wrong.
-
-Sciencecritic.PaperQA.DemoSeeds.seed()
+# Intentionally empty.
+# The demo Supabase database has already been seeded, and deployments should only run migrations.
