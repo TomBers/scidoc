@@ -11,7 +11,7 @@ ScienceCritic is a Phoenix prototype arguing that scientific papers should be di
   export SUPABASE_DB_PASSWORD='<supabase-password>'
   ```
 
-  This PoC intentionally uses one hard-coded connection mode: Supabase Postgres at `db.rztgovegfhguftbnwopd.supabase.co:6543`, database `postgres`, user `postgres`, SSL enabled, IPv6 enabled, unnamed prepared statements for the pooler. The password remains an environment variable so it is not committed.
+  Local development uses Supabase Postgres at `db.rztgovegfhguftbnwopd.supabase.co:6543`, database `postgres`, user `postgres`, SSL enabled, IPv6 enabled, and unnamed prepared statements for the pooler. The password remains an environment variable so it is not committed.
 * Run `mix ecto.migrate` to create/update the Supabase tables. Avoid `mix ecto.create` against Supabase because the `postgres` database already exists and is managed by Supabase.
 * Build the generated Attention paper HTML with `mix papers.build attention` if needed
 * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
@@ -26,10 +26,19 @@ Set these environment variables:
 MIX_ENV=prod
 PHX_HOST=<your-render-hostname>
 SECRET_KEY_BASE=<output of mix phx.gen.secret>
-SUPABASE_DB_PASSWORD=<supabase-password>
+DATABASE_URL=<supabase-pooler-connection-string>
+POOL_SIZE=5
 ```
 
-The database connection is intentionally hard-coded for this PoC: Supabase Postgres at `db.rztgovegfhguftbnwopd.supabase.co:6543`, database `postgres`, user `postgres`, SSL enabled, IPv6 enabled, pool size `5`, unnamed prepared statements for the pooler.
+For Render + Supabase, prefer Supabase's IPv4-compatible Supavisor transaction pooler connection string rather than the direct `db.<project-ref>.supabase.co` host. The direct Supabase database host may be IPv6-only, which can cause release migrations to time out on Render while waiting for a database connection.
+
+The Supabase pooler URL usually looks like:
+
+```text
+postgresql://postgres.<project-ref>:<url-encoded-password>@<pooler-host>.pooler.supabase.com:6543/postgres
+```
+
+If you intentionally use an IPv6-only database host in production, also set `ECTO_IPV6=true`. Optional queue settings are available as `DB_QUEUE_TARGET` and `DB_QUEUE_INTERVAL` in milliseconds.
 
 Use this build command:
 
