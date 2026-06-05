@@ -556,7 +556,7 @@ const PaperReader = {
   },
 
   focusSavedSelection({ selectionId, sectionId, blockId, selectedText }) {
-    this.openWorkspacePanel("paper-workspace-ai");
+    this.openWorkspacePanel("paper-workspace-history");
 
     const escapedBlockId = cssEscape(blockId);
     const escapedSectionId = cssEscape(sectionId);

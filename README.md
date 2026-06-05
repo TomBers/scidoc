@@ -5,13 +5,13 @@ ScienceCritic is a Phoenix prototype arguing that scientific papers should be di
 ## Local development
 
 * Run `mix deps.get` to install dependencies
-* Set `DATABASE_URL` to your Supabase Postgres connection string:
+* Set the Supabase database password:
 
   ```bash
-  export DATABASE_URL='postgresql://postgres:<supabase-password>@db.rztgovegfhguftbnwopd.supabase.co:5432/postgres'
+  export SUPABASE_DB_PASSWORD='<supabase-password>'
   ```
 
-  SSL is enabled automatically for `.supabase.co` hosts. Supabase direct database hosts are often IPv6-only; for the direct `db.<project-ref>.supabase.co` connection, also set `ECTO_IPV6=true`. If your machine or deployment platform does not support IPv6, use Supabase's IPv4-compatible pooler connection string instead.
+  This PoC intentionally uses one hard-coded connection mode: Supabase Postgres at `db.rztgovegfhguftbnwopd.supabase.co:6543`, database `postgres`, user `postgres`, SSL enabled, IPv6 enabled, unnamed prepared statements for the pooler. The password remains an environment variable so it is not committed.
 * Run `mix ecto.migrate` to create/update the Supabase tables. Avoid `mix ecto.create` against Supabase because the `postgres` database already exists and is managed by Supabase.
 * Build the generated Attention paper HTML with `mix papers.build attention` if needed
 * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
@@ -26,11 +26,10 @@ Set these environment variables:
 MIX_ENV=prod
 PHX_HOST=<your-render-hostname>
 SECRET_KEY_BASE=<output of mix phx.gen.secret>
-DATABASE_URL=postgresql://postgres:<supabase-password>@db.rztgovegfhguftbnwopd.supabase.co:5432/postgres
-POOL_SIZE=5
+SUPABASE_DB_PASSWORD=<supabase-password>
 ```
 
-SSL is enabled automatically for `.supabase.co` hosts. Supabase direct database hosts are often IPv6-only; for the direct `db.<project-ref>.supabase.co` connection, set `ECTO_IPV6=true`. If your deployment platform does not support IPv6, use Supabase's IPv4-compatible pooler connection string instead.
+The database connection is intentionally hard-coded for this PoC: Supabase Postgres at `db.rztgovegfhguftbnwopd.supabase.co:6543`, database `postgres`, user `postgres`, SSL enabled, IPv6 enabled, pool size `5`, unnamed prepared statements for the pooler.
 
 Use this build command:
 

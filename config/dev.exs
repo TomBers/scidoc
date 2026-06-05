@@ -1,79 +1,32 @@
 import Config
 
-# Configure your database
+# Configure your database.
 #
-# To use Supabase locally, set DATABASE_URL to your Supabase connection string, for example:
-# postgresql://postgres:<password>@db.rztgovegfhguftbnwopd.supabase.co:5432/postgres
-database_url =
-  System.get_env("DATABASE_URL") ||
-    "postgresql://postgres:postgres@localhost:5432/sciencecritic_dev"
+# This PoC is intentionally wired to the known-working Supabase Postgres
+# connection. Port 6543 is Supabase's pooler port for this host; we use unnamed
+# prepared statements because poolers do not reliably support named statements.
+# The host is IPv6-only, so we force IPv6 and SSL here too.
+supabase_db_host = "db.rztgovegfhguftbnwopd.supabase.co"
 
-database_uri = URI.parse(database_url)
-database_host = database_uri.host || ""
-database_query = URI.decode_query(database_uri.query || "")
-ssl_query_value = String.downcase(database_query["ssl"] || "")
-sslmode_query_value = String.downcase(database_query["sslmode"] || "")
-
-# Postgrex expects `ssl: true`; Supabase/Postgres URLs often use libpq-style
-# query params such as `?sslmode=require`, so translate and strip those keys.
-database_url =
-  case Map.drop(database_query, ["ssl", "sslmode"]) do
-    sanitized_query when sanitized_query == database_query ->
-      database_url
-
-    sanitized_query when sanitized_query == %{} ->
-      %{database_uri | query: nil} |> URI.to_string()
-
-    sanitized_query ->
-      %{database_uri | query: URI.encode_query(sanitized_query)} |> URI.to_string()
-  end
-
-database_ssl? =
-  ssl_query_value in ["true", "1"] or
-    sslmode_query_value in ["require", "verify-ca", "verify-full"]
-
-database_ssl =
-  case System.get_env("DATABASE_SSL") do
-    value when value in ["true", "1"] ->
-      true
-
-    value when value in ["false", "0"] ->
-      false
-
-    _ ->
-      database_ssl? or String.ends_with?(database_host, ".supabase.co") or
-        String.ends_with?(database_host, ".supabase.com")
-  end
-
-database_ssl_verify =
-  case System.get_env("DATABASE_SSL_VERIFY") do
-    value when value in ["true", "1"] -> true
-    value when value in ["false", "0"] -> false
-    _ -> sslmode_query_value in ["verify-ca", "verify-full"]
-  end
-
-database_ssl_config =
-  if database_ssl do
-    ssl_opts = [verify: if(database_ssl_verify, do: :verify_peer, else: :verify_none)]
-
-    if database_host != "" do
-      Keyword.put(ssl_opts, :server_name_indication, String.to_charlist(database_host))
-    else
-      ssl_opts
-    end
-  else
-    false
-  end
-
-maybe_ipv6 = if System.get_env("ECTO_IPV6") in ["true", "1"], do: [:inet6], else: []
+# Keep dev Mix tasks such as `mix deps.compile` and `mix format` usable even when
+# the password is not exported. Actual DB access still requires the real value.
+supabase_db_password = System.get_env("SUPABASE_DB_PASSWORD") || "missing-dev-password"
 
 config :sciencecritic, Sciencecritic.Repo,
-  url: database_url,
+  username: "postgres",
+  password: supabase_db_password,
+  hostname: supabase_db_host,
+  database: "postgres",
+  port: 6543,
   pool_size: 5,
+  prepare: :unnamed,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  ssl: database_ssl_config,
-  socket_options: maybe_ipv6
+  ssl: [
+    verify: :verify_none,
+    server_name_indication: String.to_charlist(supabase_db_host)
+  ],
+  socket_options: [:inet6]
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
