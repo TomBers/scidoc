@@ -6,18 +6,24 @@ import Config
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 test_database_url = System.get_env("TEST_DATABASE_URL")
+test_database_password = System.get_env("TEST_DATABASE_PASSWORD") || System.get_env("PGPASSWORD")
 
 repo_config =
   if test_database_url do
     [url: test_database_url]
   else
-    [
-      username: "postgres",
-      password: "postgres",
-      hostname: "localhost",
+    base_config = [
+      username: System.get_env("TEST_DATABASE_USER") || "postgres",
+      hostname: System.get_env("TEST_DATABASE_HOST") || "localhost",
       database: "sciencecritic_test#{System.get_env("MIX_TEST_PARTITION")}",
-      port: 5432
+      port: String.to_integer(System.get_env("TEST_DATABASE_PORT") || "5432")
     ]
+
+    if test_database_password do
+      Keyword.put(base_config, :password, test_database_password)
+    else
+      base_config
+    end
   end
 
 config :sciencecritic,
