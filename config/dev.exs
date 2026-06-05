@@ -1,11 +1,32 @@
 import Config
 
-# Configure your database
+# Configure your database.
+#
+# This PoC is intentionally wired to the known-working Supabase Postgres
+# connection. Port 6543 is Supabase's pooler port for this host; we use unnamed
+# prepared statements because poolers do not reliably support named statements.
+# The host is IPv6-only, so we force IPv6 and SSL here too.
+supabase_db_host = "db.rztgovegfhguftbnwopd.supabase.co"
+
+# Keep dev Mix tasks such as `mix deps.compile` and `mix format` usable even when
+# the password is not exported. Actual DB access still requires the real value.
+supabase_db_password = System.get_env("SUPABASE_DB_PASSWORD") || "missing-dev-password"
+
 config :sciencecritic, Sciencecritic.Repo,
-  database: Path.expand("../sciencecritic_dev.db", __DIR__),
+  username: "postgres",
+  password: supabase_db_password,
+  hostname: supabase_db_host,
+  database: "postgres",
+  port: 6543,
   pool_size: 5,
+  prepare: :unnamed,
   stacktrace: true,
-  show_sensitive_data_on_connection_error: true
+  show_sensitive_data_on_connection_error: true,
+  ssl: [
+    verify: :verify_none,
+    server_name_indication: String.to_charlist(supabase_db_host)
+  ],
+  socket_options: [:inet6]
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

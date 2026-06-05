@@ -17,13 +17,16 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
            )
 
     assert has_element?(view, "#paper-workspace-ai[data-paper-workspace-panel]")
-    assert has_element?(view, "[data-paper-workspace-panel]", "Q&A")
+    assert has_element?(view, "#paper-workspace-history[data-paper-workspace-panel]")
+    assert has_element?(view, "[data-paper-workspace-panel]", "Past questions")
+    assert has_element?(view, "[data-paper-workspace-panel]", "Ask new question")
     assert has_element?(view, "a.paper-package-export-link[href='/papers/attention/export']")
     assert has_element?(view, "[data-paper-style-kind='theme']")
     assert has_element?(view, "[data-paper-style-kind='font']")
     assert has_element?(view, "[data-paper-style-kind='spacing']")
     assert has_element?(view, ".paper-workspace-intro.semantic-paper-header")
-    assert has_element?(view, ".paper-ai-history-panel")
+    assert has_element?(view, ".paper-history-panel")
+    assert has_element?(view, ".paper-ai-ask-panel")
     refute has_element?(view, ".paper-document-header")
     assert has_element?(view, "#paper-section-navigator details")
     assert has_element?(view, "[data-paper-nav-target='introduction']")
@@ -31,7 +34,8 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
 
     html = render(view)
     assert html =~ "Attention Is All You Need"
-    assert html =~ "Q&amp;A"
+    assert html =~ "Past questions"
+    assert html =~ "Ask new question"
     assert html =~ "Ask about this selection"
     assert html =~ "/generated_papers/attention/ms.html"
     refute html =~ "LaTeX.js renderer"
@@ -98,20 +102,40 @@ defmodule SciencecriticWeb.PaperReaderLiveTest do
         "What does Scaled Dot-Product Attention mean in this paper?"
       )
 
+    {:ok, next_selection} =
+      PaperQA.get_or_create_selection(%{
+        "paper_id" => "attention-is-all-you-need",
+        "section_id" => "multi-head-attention",
+        "block_id" => "compiled-block-124",
+        "selected_text" => "Multi-head attention"
+      })
+
+    {:ok, _question} =
+      PaperQA.create_question(
+        next_selection,
+        "Why do multiple attention heads help?"
+      )
+
     {:ok, view, _html} = live(conn, ~p"/papers/attention")
 
     assert has_element?(view, ".paper-saved-questions")
+    refute has_element?(view, ".paper-saved-question-list")
+    assert has_element?(view, ".paper-history-navigation", "1 of 2")
     assert has_element?(view, "[data-paper-saved-selection-link]")
 
     html = render(view)
     assert html =~ "Scaled Dot-Product Attention"
-    assert html =~ "1 shared"
+    assert html =~ "What does Scaled Dot-Product Attention mean in this paper?"
+    refute html =~ "Why do multiple attention heads help?"
+    assert html =~ "2 saved"
 
     view
-    |> element("[data-paper-saved-selection-link]")
+    |> element("[data-paper-history-next]")
     |> render_click()
 
-    assert has_element?(view, "#paper-selection-question-form")
-    assert render(view) =~ "What does Scaled Dot-Product Attention mean in this paper?"
+    html = render(view)
+    assert html =~ "Why do multiple attention heads help?"
+    refute html =~ "What does Scaled Dot-Product Attention mean in this paper?"
+    assert html =~ "2 of 2"
   end
 end

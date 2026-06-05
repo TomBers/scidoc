@@ -3,8 +3,7 @@ defmodule Sciencecritic.PaperQA.DemoSeeds do
   Idempotent demo seed data for the Attention paper.
 
   These examples are hand-authored instead of generated at boot so the public
-  demo has useful persisted questions even when the SQLite database is ephemeral,
-  and even when no LLM API key is configured.
+  demo has useful persisted questions even when no LLM API key is configured.
   """
 
   import Ecto.Query

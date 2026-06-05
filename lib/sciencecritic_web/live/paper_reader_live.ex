@@ -18,18 +18,24 @@ defmodule SciencecriticWeb.PaperReaderLive do
     socket =
       case LatexParser.parse_directory(paper_root) do
         {:ok, paper} ->
+          saved_selections = PaperQA.list_paper_question_selections(paper.id)
+          {history_selection, history_questions} = initial_history_selection(saved_selections)
+
           assign(socket,
             paper: paper,
             outline_groups: outline_groups(paper.sections),
             stats: paper_stats(paper),
             compiled_available?: File.exists?(compiled_path),
             parse_error: nil,
-            saved_selections: PaperQA.list_paper_question_selections(paper.id),
+            saved_selections: saved_selections,
+            history_selection: history_selection,
+            history_questions: history_questions,
             selected_selection: nil,
             selection_questions: [],
             question_form: to_form(%{"question" => ""}, as: :qa),
             follow_up_form: to_form(%{"question" => ""}, as: :follow_up),
-            qa_error: nil
+            qa_error: nil,
+            workspace_focus: :history
           )
 
         {:error, reason} ->
@@ -40,11 +46,14 @@ defmodule SciencecriticWeb.PaperReaderLive do
             compiled_available?: File.exists?(compiled_path),
             parse_error: inspect(reason),
             saved_selections: [],
+            history_selection: nil,
+            history_questions: [],
             selected_selection: nil,
             selection_questions: [],
             question_form: to_form(%{"question" => ""}, as: :qa),
             follow_up_form: to_form(%{"question" => ""}, as: :follow_up),
-            qa_error: nil
+            qa_error: nil,
+            workspace_focus: :history
           )
       end
 
@@ -63,7 +72,8 @@ defmodule SciencecriticWeb.PaperReaderLive do
          |> assign(:selection_questions, selection.questions)
          |> assign(:question_form, to_form(%{"question" => ""}, as: :qa))
          |> assign(:follow_up_form, to_form(%{"question" => ""}, as: :follow_up))
-         |> assign(:qa_error, nil)}
+         |> assign(:qa_error, nil)
+         |> assign(:workspace_focus, :ask)}
 
       nil ->
         {:noreply,
@@ -72,7 +82,8 @@ defmodule SciencecriticWeb.PaperReaderLive do
          |> assign(:selection_questions, [])
          |> assign(:question_form, to_form(%{"question" => ""}, as: :qa))
          |> assign(:follow_up_form, to_form(%{"question" => ""}, as: :follow_up))
-         |> assign(:qa_error, nil)}
+         |> assign(:qa_error, nil)
+         |> assign(:workspace_focus, :ask)}
     end
   end
 
@@ -83,10 +94,9 @@ defmodule SciencecriticWeb.PaperReaderLive do
           %Selection{} = selection ->
             {:noreply,
              socket
-             |> assign(:selected_selection, selection)
-             |> assign(:selection_questions, selection.questions)
-             |> assign(:question_form, to_form(%{"question" => ""}, as: :qa))
-             |> assign(:follow_up_form, to_form(%{"question" => ""}, as: :follow_up))
+             |> assign(:history_selection, selection)
+             |> assign(:history_questions, selection.questions)
+             |> assign(:workspace_focus, :history)
              |> assign(:qa_error, nil)}
 
           nil ->
@@ -174,20 +184,101 @@ defmodule SciencecriticWeb.PaperReaderLive do
             aria-label="Semantic paper workspace"
           >
             <details
+              id="paper-workspace-history"
+              class="paper-workspace-section paper-saved-questions paper-history-panel"
+              aria-labelledby="saved-questions-heading"
+              data-paper-workspace-panel
+              open={@workspace_focus == :history}
+            >
+              <summary>
+                <span class="paper-workspace-summary-main">
+                  <span class="paper-workspace-icon">
+                    <.icon name="hero-clock" class="size-4" />
+                  </span>
+                  <span id="saved-questions-heading" class="paper-workspace-label">
+                    Past questions
+                  </span>
+                </span>
+                <small>{saved_question_count(@saved_selections)} saved</small>
+              </summary>
+
+              <section
+                id="paper-history-browser"
+                class="paper-history-browser"
+                aria-label="Past questions"
+              >
+                <p :if={saved_question_count(@saved_selections) == 0} class="paper-selection-empty">
+                  Saved questions will appear here after readers ask about selected passages.
+                </p>
+
+                <%= if saved_question_count(@saved_selections) > 0 do %>
+                  <section
+                    id="paper-history-detail"
+                    class="paper-history-detail"
+                    aria-label="Selected past questions"
+                  >
+                    <%= if @history_selection do %>
+                      <div class="paper-history-selected-summary">
+                        <span>{section_label(@history_selection.section_id)}</span>
+                        <strong>{@history_selection.selected_text}</strong>
+                        <small>{selection_meta(@history_selection)}</small>
+                      </div>
+
+                      <div
+                        :if={@history_questions != []}
+                        class="paper-question-thread paper-history-thread"
+                      >
+                        <article
+                          :for={question <- @history_questions}
+                          id={"paper-history-question-#{question.id}"}
+                        >
+                          <header>
+                            <span>Question</span>
+                            <small>{question.status}</small>
+                          </header>
+                          <p class="paper-history-question-text">{question.question}</p>
+                          <div class={[
+                            "paper-question-answer",
+                            "paper-history-answer",
+                            question.status == "failed" && "is-error"
+                          ]}>
+                            <span>Answer</span>
+                            <p>{question.answer || question.error || "Waiting for an answer..."}</p>
+                          </div>
+                        </article>
+                      </div>
+
+                      <.history_navigation
+                        saved_selections={@saved_selections}
+                        history_selection={@history_selection}
+                      />
+                    <% else %>
+                      <p class="paper-selection-empty">
+                        Choose a saved passage to read its questions and answers.
+                      </p>
+                    <% end %>
+                  </section>
+                <% end %>
+              </section>
+            </details>
+
+            <details
               id="paper-workspace-ai"
-              class="paper-workspace-section paper-ai-history-panel"
+              class="paper-workspace-section paper-ai-ask-panel"
               aria-labelledby="context-heading"
               data-paper-workspace-panel
-              open={not is_nil(@selected_selection)}
+              open={@workspace_focus == :ask}
             >
               <summary>
                 <span class="paper-workspace-summary-main">
                   <span class="paper-workspace-icon">
                     <.icon name="hero-chat-bubble-left-right" class="size-4" />
                   </span>
-                  <span id="context-heading" class="paper-workspace-label">Q&A</span>
+                  <span id="context-heading" class="paper-workspace-label">
+                    Ask new question
+                  </span>
                 </span>
-                <small>{saved_question_count(@saved_selections)} shared</small>
+                <small>{if @selected_selection, do: "selection ready", else: "select text"}</small>
               </summary>
 
               <section
@@ -200,7 +291,7 @@ defmodule SciencecriticWeb.PaperReaderLive do
                   data-paper-selection-empty
                   hidden={not is_nil(@selected_selection)}
                 >
-                  Select text in the paper to ask a grounded question. Answers are added to the shared demo history.
+                  Select text in the paper, then ask a new grounded question here.
                 </p>
                 <div
                   class="paper-selection-result"
@@ -295,7 +386,7 @@ defmodule SciencecriticWeb.PaperReaderLive do
                 open={@selection_questions != []}
               >
                 <summary>
-                  <span>Answers</span>
+                  <span>Current answers</span>
                   <small>{length(@selection_questions)} active</small>
                 </summary>
                 <div :if={@selection_questions != []} class="paper-question-thread">
@@ -332,50 +423,8 @@ defmodule SciencecriticWeb.PaperReaderLive do
                   </article>
                 </div>
                 <p :if={@selection_questions == []} class="paper-selection-empty">
-                  Answers and follow-up prompts appear here after you ask about a selection.
+                  New answers and follow-up prompts appear here after you ask about a selection.
                 </p>
-              </details>
-
-              <details
-                id="paper-workspace-history"
-                class="paper-workspace-section paper-saved-questions paper-secondary-workflow"
-                open
-              >
-                <summary>
-                  <span id="saved-questions-heading">Shared history</span>
-                  <small>{saved_question_count(@saved_selections)} public</small>
-                </summary>
-
-                <p :if={saved_question_count(@saved_selections) == 0} class="paper-selection-empty">
-                  Shared questions will appear here when readers ask about selected passages.
-                </p>
-
-                <div
-                  :if={saved_question_count(@saved_selections) > 0}
-                  class="paper-saved-question-list"
-                >
-                  <button
-                    :for={selection <- @saved_selections}
-                    :if={selection.questions != []}
-                    type="button"
-                    phx-click="select_saved_selection"
-                    phx-value-id={selection.id}
-                    data-paper-saved-selection-link
-                    data-paper-selection-id={selection.id}
-                    data-paper-selection-text={selection.selected_text}
-                    data-paper-selection-section={selection.section_id}
-                    data-paper-selection-block={selection.block_id}
-                  >
-                    <span>{section_label(selection.section_id)}</span>
-                    <strong>{selection.selected_text}</strong>
-                    <small>
-                      {length(selection.questions)} question{if(length(selection.questions) == 1,
-                        do: "",
-                        else: "s"
-                      )}
-                    </small>
-                  </button>
-                </div>
               </details>
             </details>
 
@@ -687,14 +736,114 @@ defmodule SciencecriticWeb.PaperReaderLive do
 
   defp refresh_selection_questions(socket, selection_id) do
     selection = PaperQA.get_selection_with_questions(selection_id)
+    saved_selections = PaperQA.list_paper_question_selections(socket.assigns.paper.id)
+    {history_selection, history_questions} = history_after_question_refresh(socket, selection)
 
     socket
     |> assign(:selected_selection, selection)
     |> assign(:selection_questions, selection.questions)
-    |> assign(:saved_selections, PaperQA.list_paper_question_selections(socket.assigns.paper.id))
+    |> assign(:saved_selections, saved_selections)
+    |> assign(:history_selection, history_selection)
+    |> assign(:history_questions, history_questions)
     |> assign(:question_form, to_form(%{"question" => ""}, as: :qa))
     |> assign(:follow_up_form, to_form(%{"question" => ""}, as: :follow_up))
     |> assign(:qa_error, nil)
+    |> assign(:workspace_focus, :ask)
+  end
+
+  defp initial_history_selection(saved_selections) do
+    case Enum.find(saved_selections, &(&1.questions != [])) do
+      nil -> {nil, []}
+      selection -> {selection, selection.questions}
+    end
+  end
+
+  defp history_after_question_refresh(socket, refreshed_selection) do
+    case socket.assigns.history_selection do
+      %Selection{id: id} when id == refreshed_selection.id ->
+        {refreshed_selection, refreshed_selection.questions}
+
+      nil ->
+        {refreshed_selection, refreshed_selection.questions}
+
+      selection ->
+        {selection, socket.assigns.history_questions}
+    end
+  end
+
+  defp history_navigation(assigns) do
+    selections = readable_history_selections(assigns.saved_selections)
+    current_index = history_selection_index(selections, assigns.history_selection)
+
+    assigns =
+      assigns
+      |> assign(:position_label, history_position_label(current_index, length(selections)))
+      |> assign(:previous_selection, adjacent_history_selection(selections, current_index, -1))
+      |> assign(:next_selection, adjacent_history_selection(selections, current_index, 1))
+
+    ~H"""
+    <nav class="paper-history-navigation" aria-label="Past question navigation">
+      <button
+        :if={@previous_selection}
+        type="button"
+        phx-click="select_saved_selection"
+        phx-value-id={@previous_selection.id}
+        data-paper-saved-selection-link
+        data-paper-saved-selection-id={@previous_selection.id}
+        data-paper-saved-selection-text={@previous_selection.selected_text}
+        data-paper-saved-selection-section={@previous_selection.section_id}
+        data-paper-saved-selection-block={@previous_selection.block_id}
+        data-paper-history-previous
+      >
+        <.icon name="hero-arrow-left" class="size-4" /> Previous
+      </button>
+      <button :if={!@previous_selection} type="button" disabled>
+        <.icon name="hero-arrow-left" class="size-4" /> Previous
+      </button>
+
+      <span>{@position_label}</span>
+
+      <button
+        :if={@next_selection}
+        type="button"
+        phx-click="select_saved_selection"
+        phx-value-id={@next_selection.id}
+        data-paper-saved-selection-link
+        data-paper-saved-selection-id={@next_selection.id}
+        data-paper-saved-selection-text={@next_selection.selected_text}
+        data-paper-saved-selection-section={@next_selection.section_id}
+        data-paper-saved-selection-block={@next_selection.block_id}
+        data-paper-history-next
+      >
+        Next <.icon name="hero-arrow-right" class="size-4" />
+      </button>
+      <button :if={!@next_selection} type="button" disabled>
+        Next <.icon name="hero-arrow-right" class="size-4" />
+      </button>
+    </nav>
+    """
+  end
+
+  defp readable_history_selections(selections), do: Enum.filter(selections, &(&1.questions != []))
+
+  defp history_selection_index(_selections, nil), do: nil
+
+  defp history_selection_index(selections, %Selection{id: selection_id}) do
+    Enum.find_index(selections, &(&1.id == selection_id))
+  end
+
+  defp history_position_label(nil, 0), do: "No saved questions"
+  defp history_position_label(nil, count), do: "#{count} saved"
+  defp history_position_label(index, count), do: "#{index + 1} of #{count}"
+
+  defp adjacent_history_selection(_selections, nil, _offset), do: nil
+
+  defp adjacent_history_selection(selections, current_index, offset) do
+    target_index = current_index + offset
+
+    if target_index >= 0 and target_index < length(selections) do
+      Enum.at(selections, target_index)
+    end
   end
 
   defp selection_for_question(socket, params) do
