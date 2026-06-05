@@ -28,6 +28,11 @@ sciencecritic-*.tar
 # Ignore assets that are produced by build tools.
 /priv/static/assets/
 
+# Local environment files can contain secrets such as DATABASE_URL.
+.env
+.env.*
+!.env.example
+
 # Ignore digested assets cache.
 /priv/static/cache_manifest.json
 
@@ -38,4 +43,3 @@ npm-debug.log
 # Database files
 *.db
 *.db-*
-

@@ -5,10 +5,28 @@ import Config
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
-config :sciencecritic, Sciencecritic.Repo,
-  database: Path.expand("../sciencecritic_test.db", __DIR__),
-  pool_size: 5,
-  pool: Ecto.Adapters.SQL.Sandbox
+test_database_url = System.get_env("TEST_DATABASE_URL")
+
+repo_config =
+  if test_database_url do
+    [url: test_database_url]
+  else
+    [
+      username: "postgres",
+      password: "postgres",
+      hostname: "localhost",
+      database: "sciencecritic_test#{System.get_env("MIX_TEST_PARTITION")}",
+      port: 5432
+    ]
+  end
+
+config :sciencecritic,
+       Sciencecritic.Repo,
+       repo_config ++
+         [
+           pool_size: 5,
+           pool: Ecto.Adapters.SQL.Sandbox
+         ]
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

@@ -4,7 +4,15 @@ ScienceCritic is a Phoenix prototype arguing that scientific papers should be di
 
 ## Local development
 
-* Run `mix setup` to install and setup dependencies
+* Run `mix deps.get` to install dependencies
+* Set `DATABASE_URL` to your Supabase Postgres connection string:
+
+  ```bash
+  export DATABASE_URL='postgresql://postgres:<supabase-password>@db.rztgovegfhguftbnwopd.supabase.co:5432/postgres'
+  ```
+
+  SSL is enabled automatically for `.supabase.co` hosts. Supabase direct database hosts are often IPv6-only; for the direct `db.<project-ref>.supabase.co` connection, also set `ECTO_IPV6=true`. If your machine or deployment platform does not support IPv6, use Supabase's IPv4-compatible pooler connection string instead.
+* Run `mix ecto.migrate` to create/update the Supabase tables. Avoid `mix ecto.create` against Supabase because the `postgres` database already exists and is managed by Supabase.
 * Build the generated Attention paper HTML with `mix papers.build attention` if needed
 * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
@@ -18,16 +26,11 @@ Set these environment variables:
 MIX_ENV=prod
 PHX_HOST=<your-render-hostname>
 SECRET_KEY_BASE=<output of mix phx.gen.secret>
-DATABASE_PATH=/var/data/scidoc.db
+DATABASE_URL=postgresql://postgres:<supabase-password>@db.rztgovegfhguftbnwopd.supabase.co:5432/postgres
+POOL_SIZE=5
 ```
 
-For persistent SQLite storage on Render, add a persistent disk mounted at:
-
-```text
-/var/data
-```
-
-If you do not need persistence for a throwaway demo, `DATABASE_PATH=/tmp/scidoc.db` will work but the database may disappear on restart.
+SSL is enabled automatically for `.supabase.co` hosts. Supabase direct database hosts are often IPv6-only; for the direct `db.<project-ref>.supabase.co` connection, set `ECTO_IPV6=true`. If your deployment platform does not support IPv6, use Supabase's IPv4-compatible pooler connection string instead.
 
 Use this build command:
 
@@ -62,9 +65,9 @@ Why:
 * `mix phx.digest` only digests files that already exist; it does not build `assets/css/app.css` or `assets/js/app.js`.
 * `mix assets.deploy` runs Tailwind, esbuild, and `phx.digest`, which produces `priv/static/cache_manifest.json` for production static serving.
 * `mix release` packages the compiled app so Render does not need to start the service through Mix.
-* SQLite must live in a writable directory. `eacces` usually means `DATABASE_PATH` points somewhere Render cannot write, or the parent directory is not on a mounted disk.
+* `DATABASE_URL` points the release at Supabase Postgres; do not commit the password to source control.
 * `bin/render-start` runs the release migration command before the server starts so tables such as `paper_selections` exist.
-* `bin/render-start` also runs idempotent demo seeds so ephemeral SQLite deployments still show example explanations after every deploy.
+* `bin/render-start` also runs idempotent demo seeds so deployments show example explanations after every deploy.
 * The GitHub repo can be named `scidoc` while the Phoenix/OTP app remains `:sciencecritic`; those names do not need to match.
 
 ## Useful commands
