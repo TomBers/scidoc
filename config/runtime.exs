@@ -21,32 +21,40 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() == :prod do
-  # This PoC is intentionally wired to the known-working Supabase Postgres
-  # connection. Port 6543 is Supabase's pooler port for this host; we use unnamed
-  # prepared statements because poolers do not reliably support named statements.
-  # The host is IPv6-only, so we force IPv6 and SSL here too.
-  supabase_db_host = "db.rztgovegfhguftbnwopd.supabase.co"
-
-  supabase_db_password =
-    System.get_env("SUPABASE_DB_PASSWORD") ||
+  database_url =
+    System.get_env("DATABASE_URL") ||
       raise """
-      environment variable SUPABASE_DB_PASSWORD is missing.
-      Set it to the Supabase database password before starting the release.
+      environment variable DATABASE_URL is missing.
+      Set it to your production Postgres connection string.
+
+      For Supabase on Render, use the IPv4-compatible Supavisor transaction pooler
+      connection string, usually on port 6543, because Render may not be able to
+      reach Supabase's direct IPv6-only database host.
       """
 
-  config :sciencecritic, Sciencecritic.Repo,
-    username: "postgres",
-    password: supabase_db_password,
-    hostname: supabase_db_host,
-    database: "postgres",
-    port: 6543,
-    pool_size: 5,
+  database_uri = URI.parse(database_url)
+  database_host = database_uri.host || raise "DATABASE_URL must include a host"
+
+  repo_config = [
+    url: database_url,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
+    queue_target: String.to_integer(System.get_env("DB_QUEUE_TARGET") || "15000"),
+    queue_interval: String.to_integer(System.get_env("DB_QUEUE_INTERVAL") || "30000"),
     prepare: :unnamed,
     ssl: [
       verify: :verify_none,
-      server_name_indication: String.to_charlist(supabase_db_host)
-    ],
-    socket_options: [:inet6]
+      server_name_indication: String.to_charlist(database_host)
+    ]
+  ]
+
+  repo_config =
+    if System.get_env("ECTO_IPV6") in ["true", "1"] do
+      Keyword.put(repo_config, :socket_options, [:inet6])
+    else
+      repo_config
+    end
+
+  config :sciencecritic, Sciencecritic.Repo, repo_config
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
