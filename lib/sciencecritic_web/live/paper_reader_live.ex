@@ -35,7 +35,7 @@ defmodule SciencecriticWeb.PaperReaderLive do
             question_form: to_form(%{"question" => ""}, as: :qa),
             follow_up_form: to_form(%{"question" => ""}, as: :follow_up),
             qa_error: nil,
-            workspace_focus: :history
+            workspace_focus: nil
           )
 
         {:error, reason} ->
@@ -53,7 +53,7 @@ defmodule SciencecriticWeb.PaperReaderLive do
             question_form: to_form(%{"question" => ""}, as: :qa),
             follow_up_form: to_form(%{"question" => ""}, as: :follow_up),
             qa_error: nil,
-            workspace_focus: :history
+            workspace_focus: nil
           )
       end
 

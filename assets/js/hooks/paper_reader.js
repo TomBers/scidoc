@@ -189,13 +189,87 @@ const PaperReader = {
 
       .compiled-paper-document {
         max-width: 100%;
+        padding: clamp(1.25rem, 2vw, 2rem);
         overflow-wrap: anywhere;
+      }
+
+      .compiled-paper-document p {
+        margin-top: 0.9rem !important;
+        margin-bottom: 0.9rem !important;
+        line-height: 1.72 !important;
+      }
+
+      .compiled-paper-document .maketitle {
+        display: flow-root;
+        margin: 0 0 2.5rem !important;
+        padding-bottom: 1.75rem;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        color: transparent !important;
+        line-height: 0;
+        overflow: hidden;
+      }
+
+      .compiled-paper-document .maketitle > * {
+        color: #172033 !important;
+        line-height: 1.5;
+      }
+
+      .compiled-paper-document .titleHead {
+        margin: 0 0 1.35rem !important;
+        color: #0f172a !important;
+        font-size: clamp(1.85rem, 4vw, 3rem) !important;
+        line-height: 1.08 !important;
+        letter-spacing: 0 !important;
       }
 
       .compiled-paper-document div.author,
       .compiled-paper-document div.thanks {
         white-space: normal !important;
         overflow-wrap: anywhere;
+      }
+
+      .compiled-paper-document div.author {
+        margin-inline: auto;
+        max-width: 64rem;
+        line-height: 1.45 !important;
+      }
+
+      .compiled-paper-document div.thanks {
+        margin: 1.75rem auto 0 !important;
+        max-width: 68ch;
+        padding: 1rem 1.1rem;
+        border-radius: 0.75rem;
+        background: #f8fafc;
+        color: #475569 !important;
+        font-size: 0.9rem !important;
+        line-height: 1.65 !important;
+      }
+
+      .compiled-paper-document div.thanks * {
+        color: inherit !important;
+      }
+
+      .compiled-paper-document .abstract {
+        margin: 2rem 0 2.4rem !important;
+      }
+
+      .compiled-paper-document .abstract blockquote {
+        margin: 0.9rem auto 0 !important;
+        max-width: 72ch;
+      }
+
+      .compiled-paper-document .paragraphHead,
+      .compiled-paper-document .likeparagraphHead {
+        display: block;
+        margin: 2rem 0 0.45rem !important;
+        color: #0f172a !important;
+        font-size: 1.05rem;
+        line-height: 1.35;
+      }
+
+      .compiled-paper-document p > .paragraphHead:first-child,
+      .compiled-paper-document p > .likeparagraphHead:first-child {
+        margin-top: 0 !important;
       }
 
       .compiled-paper-document table,

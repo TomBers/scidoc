@@ -15,42 +15,56 @@ defmodule Mix.Tasks.Papers.Build do
   @impl true
   def run(["attention"]) do
     app_root = File.cwd!()
-    source = Path.join(app_root, "priv/static/papers/attention/ms.tex")
     source_root = Path.join(app_root, "priv/static/papers/attention")
     output_dir = Path.join(app_root, "priv/static/generated_papers/attention")
 
-    File.rm_rf!(output_dir)
-    File.mkdir_p!(output_dir)
-
-    env = [{"TEXINPUTS", source_root <> "//:"}]
-
-    {output, status} =
-      System.cmd(
-        "make4ht",
-        ["-u", "-f", "html5", "-d", output_dir, source],
-        cd: app_root,
-        env: env,
-        stderr_to_stdout: true
+    build_root =
+      Path.join(
+        System.tmp_dir!(),
+        "sciencecritic-attention-#{System.unique_integer([:positive])}"
       )
 
-    Mix.shell().info(output)
+    build_source_root = Path.join(build_root, "attention")
+    source = Path.join(build_source_root, "ms.tex")
 
-    output_file = Path.join(output_dir, "ms.html")
+    File.rm_rf!(output_dir)
+    File.mkdir_p!(output_dir)
+    File.mkdir_p!(build_root)
+    File.cp_r!(source_root, build_source_root)
 
-    cond do
-      File.exists?(output_file) ->
-        postprocess_attention_output(output_dir)
+    try do
+      env = [{"TEXINPUTS", build_source_root <> "//:"}]
 
-        if status == 0 do
-          Mix.shell().info("Generated #{Path.relative_to_cwd(output_file)}")
-        else
-          Mix.shell().info(
-            "make4ht exited with status #{status}, but #{Path.relative_to_cwd(output_file)} was generated."
-          )
-        end
+      {output, status} =
+        System.cmd(
+          "make4ht",
+          ["-u", "-f", "html5", "-d", output_dir, source],
+          cd: build_source_root,
+          env: env,
+          stderr_to_stdout: true
+        )
 
-      true ->
-        Mix.raise("make4ht failed with status #{status} and did not generate #{output_file}")
+      Mix.shell().info(output)
+
+      output_file = Path.join(output_dir, "ms.html")
+
+      cond do
+        File.exists?(output_file) ->
+          postprocess_attention_output(source_root, output_dir)
+
+          if status == 0 do
+            Mix.shell().info("Generated #{Path.relative_to_cwd(output_file)}")
+          else
+            Mix.shell().info(
+              "make4ht exited with status #{status}, but #{Path.relative_to_cwd(output_file)} was generated."
+            )
+          end
+
+        true ->
+          Mix.raise("make4ht failed with status #{status} and did not generate #{output_file}")
+      end
+    after
+      File.rm_rf!(build_root)
     end
   end
 
@@ -58,11 +72,63 @@ defmodule Mix.Tasks.Papers.Build do
     Mix.raise("Usage: mix papers.build attention")
   end
 
-  defp postprocess_attention_output(output_dir) do
+  defp postprocess_attention_output(source_root, output_dir) do
     css_path = Path.join(output_dir, "ms.css")
 
     if File.exists?(css_path) do
       File.write!(css_path, compiled_reader_overrides(), [:append])
+    end
+
+    copy_attention_visualizations(source_root, output_dir)
+  end
+
+  defp copy_attention_visualizations(source_root, output_dir) do
+    source_vis_dir = Path.join(source_root, "vis")
+    output_vis_dir = Path.join(output_dir, "vis")
+
+    with converter when not is_nil(converter) <- System.find_executable("magick"),
+         true <- File.dir?(source_vis_dir) do
+      File.mkdir_p!(output_vis_dir)
+
+      source_vis_dir
+      |> Path.join("*.pdf")
+      |> Path.wildcard()
+      |> Enum.each(fn source_path ->
+        output_name = Path.basename(source_path, ".pdf") <> "-.png"
+        output_path = Path.join(output_vis_dir, output_name)
+
+        {output, status} =
+          System.cmd(
+            converter,
+            [
+              "-density",
+              "144",
+              source_path,
+              "-background",
+              "white",
+              "-alpha",
+              "remove",
+              "-alpha",
+              "off",
+              output_path
+            ],
+            stderr_to_stdout: true
+          )
+
+        if status != 0 do
+          Mix.shell().error(
+            "Could not convert #{Path.relative_to_cwd(source_path)}: #{String.trim(output)}"
+          )
+        end
+      end)
+    else
+      nil ->
+        Mix.shell().error(
+          "ImageMagick `magick` was not found; attention visualization PNGs were not generated."
+        )
+
+      false ->
+        :ok
     end
   end
 

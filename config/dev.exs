@@ -14,19 +14,12 @@ supabase_db_password = System.get_env("SUPABASE_DB_PASSWORD") || "missing-dev-pa
 
 config :sciencecritic, Sciencecritic.Repo,
   username: "postgres",
-  password: supabase_db_password,
-  hostname: supabase_db_host,
-  database: "postgres",
-  port: 6543,
-  pool_size: 5,
-  prepare: :unnamed,
+  password: "postgres",
+  hostname: "localhost",
+  database: "scidoc_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  ssl: [
-    verify: :verify_none,
-    server_name_indication: String.to_charlist(supabase_db_host)
-  ],
-  socket_options: [:inet6]
+  pool_size: 10
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
