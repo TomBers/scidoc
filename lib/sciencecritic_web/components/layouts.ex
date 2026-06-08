@@ -46,7 +46,7 @@ defmodule SciencecriticWeb.Layouts do
           </span>
           <span class="min-w-0">
             <span class="block text-sm font-black tracking-[0.14em] text-blue-600 uppercase">
-              ScienceCritic
+              SciDoc
             </span>
             <span class="block truncate text-sm font-semibold text-slate-600">
               Semantic paper review demo
@@ -66,7 +66,6 @@ defmodule SciencecriticWeb.Layouts do
           >
             <.icon name="hero-code-bracket-square" class="size-4" /> Repo
           </a>
-          <.theme_toggle />
         </nav>
       </div>
     </header>
